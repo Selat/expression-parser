@@ -9,36 +9,36 @@ using std::cout;
 using std::endl;
 
 const std::string ExpressionParser::m_whitespaces = " \t\n";
-const Functions ExpressionParser::m_operators = {
-	Function("+", 10, [&](Args &a){return a[0] + a[1];}, true),
-	Function("-", 10, [&](Args &a){return a[0] - a[1];}, false),
-	Function("*", 20, [&](Args &a){return a[0] * a[1];}, true),
-	Function("/", 20, [&](Args &a){return a[0] / a[1];}, false),
-	Function("-", 40, [&](Args &a){return a[0] * a[1];}, Function::Type::PREFIX)};
+const Functions Expression::m_operators = {
+	Function("+", 10, [=](const Args &a){return a[0] + a[1];}, true),
+	Function("-", 10, [&](const Args &a){return a[0] - a[1];}, false),
+	Function("*", 20, [&](const Args &a){return a[0] * a[1];}, true),
+	Function("/", 20, [&](const Args &a){return a[0] / a[1];}, false),
+	Function("-", 40, [&](const Args &a){return a[0] * a[1];}, Function::Type::PREFIX)};
 const Functions ExpressionParser::m_functions = {
-	Function("abs", [&](Args &a){return abs(a[0]);}),
-	Function("ceil", [&](Args &a){return ceil(a[0]);}),
-	Function("floor", [&](Args &a){return floor(a[0]);}),
-	Function("max", [&](Args &a){return std::max(a[0], a[1]);}, 2),
-	Function("min", [&](Args &a){return std::min(a[0], a[1]);}, 2),
+	Function("abs", [&](const Args &a){return abs(a[0]);}),
+	Function("ceil", [&](const Args &a){return ceil(a[0]);}),
+	Function("floor", [&](const Args &a){return floor(a[0]);}),
+	Function("max", [&](const Args &a){return std::max(a[0], a[1]);}, 2),
+	Function("min", [&](const Args &a){return std::min(a[0], a[1]);}, 2),
 
-	Function("sin", [&](Args &a){return sin(a[0]);}),
-	Function("cos", [&](Args &a){return cos(a[0]);}),
-	Function("tan", [&](Args &a){return tan(a[0]);}),
-	Function("ctg", [&](Args &a){return 1.0 / tan(a[0]);}),
-	Function("asin", [&](Args &a){return asin(a[0]);}),
-	Function("acos", [&](Args &a){return acos(a[0]);}),
-	Function("atan", [&](Args &a){return atan(a[0]);}),
-	Function("atan2", [&](Args &a){return atan2(a[0], a[1]);}, 2),
+	Function("sin", [&](const Args &a){return sin(a[0]);}),
+	Function("cos", [&](const Args &a){return cos(a[0]);}),
+	Function("tan", [&](const Args &a){return tan(a[0]);}),
+	Function("ctg", [&](const Args &a){return 1.0 / tan(a[0]);}),
+	Function("asin", [&](const Args &a){return asin(a[0]);}),
+	Function("acos", [&](const Args &a){return acos(a[0]);}),
+	Function("atan", [&](const Args &a){return atan(a[0]);}),
+	Function("atan2", [&](const Args &a){return atan2(a[0], a[1]);}, 2),
 
-	Function("cosh", [&](Args &a){return cosh(a[0]);}),
-	Function("sinh", [&](Args &a){return sinh(a[0]);}),
-	Function("tanh", [&](Args &a){return tanh(a[0]);}),
-	Function("ctgh", [&](Args &a){return 1.0 / (a[0]);}),
-	Function("acosh", [&](Args &a){return acosh(a[0]);}),
-	Function("asinh", [&](Args &a){return asinh(a[0]);}),
-	Function("atanh", [&](Args &a){return atanh(a[0]);}),
-	Function("actgh", [&](Args &a){return atanh(1.0 /a[0]);})};
+	Function("cosh", [&](const Args &a){return cosh(a[0]);}),
+	Function("sinh", [&](const Args &a){return sinh(a[0]);}),
+	Function("tanh", [&](const Args &a){return tanh(a[0]);}),
+	Function("ctgh", [&](const Args &a){return 1.0 / (a[0]);}),
+	Function("acosh", [&](const Args &a){return acosh(a[0]);}),
+	Function("asinh", [&](const Args &a){return asinh(a[0]);}),
+	Function("atanh", [&](const Args &a){return atanh(a[0]);}),
+	Function("actgh", [&](const Args &a){return atanh(1.0 /a[0]);})};
 
 void Cell::print()
 {
@@ -57,14 +57,43 @@ void Cell::print()
 	}
 }
 
-ExpressionParser::ExpressionParser(std::map <std::string, double> &variables) :
-	m_variables(variables), real_shift(0), is_recursive_call(false)
+double Cell::eval()
+{
+	switch(type) {
+	case Type::FUNCTION:
+	{
+		Args args;
+		for(auto i : func.args) {
+			args.push_back(i->eval());
+		}
+		return func.iter->func(args);
+		break;
+	}
+	case Type::VARIABLE:
+	{
+		return var.iter->second;
+		break;
+	}
+	case Type::NUMBER:
+	{
+		return val;
+		break;
+	}
+	default:
+		throw ExpressionException("Attempt to evaluate cell of type \"NONE\"");
+	}
+}
+
+ExpressionParser::ExpressionParser(std::map <std::string, double> &variables,
+                                   const Functions &operators) :
+	m_operators(operators), m_variables(variables), real_shift(0), is_recursive_call(false)
 {
 }
 
 ExpressionParser::ExpressionParser(std::map <std::string, double> &variables,
+                                   const Functions &operators,
                                    const std::string &_real_s, size_t shift) :
-	m_variables(variables), real_s(_real_s),
+	m_operators(operators), m_variables(variables), real_s(_real_s),
 	real_shift(shift), is_recursive_call(true)
 {
 }
@@ -72,9 +101,16 @@ ExpressionParser::ExpressionParser(std::map <std::string, double> &variables,
 Expression::Expression(const std::string &s) :
 	m_root(nullptr)
 {
-	ExpressionParser p(m_variables);
+	ExpressionParser p(m_variables, m_operators);
 	m_root = p.parse(s);
+	cout << "You entered: " << endl;
 	m_root->print();
+	cout << endl;
+	for(auto &i : m_variables) {
+		cout << i.first << " = ";
+		std::cin >> i.second;
+	}
+	cout << m_root->eval() << endl;
 }
 
 Cell* ExpressionParser::parse(const std::string &s)
@@ -157,7 +193,7 @@ void ExpressionParser::parseParenthesis(const std::string &s)
 	}
 	int end = findMatchingParenthesis(s, id);
 	++id;
-	ExpressionParser p(m_variables, real_s, real_shift + id);
+	ExpressionParser p(m_variables, m_operators, real_s, real_shift + id);
 	Cell *tcell = p.parse(s.substr(id, end - id));
 	if(parents.empty()) {
 		delete root;
@@ -202,7 +238,7 @@ void ExpressionParser::parseOperator(const std::string &s)
 			id = start;
 			f = findItem(s, id, m_operators, Function::Type::INFIX);
 			if(f != m_operators.end()) {
-				// Restore value of 
+				// Restore value of
 				id += f->name.length();
 				is_prev_num = false;
 			} else {
@@ -243,6 +279,12 @@ void ExpressionParser::parseOperator(const std::string &s)
 			parents.pop_back();
 		}
 	}
+	{
+		Args args;
+		args.push_back(1);
+		args.push_back(1);
+		std::cout << "Test: " << f->func(args) << std::endl;
+	}
 	tcell->type = Cell::Type::FUNCTION;
 	tcell->func.iter = f;
 	tcell->func.args.push_back(curcell);
@@ -277,12 +319,12 @@ void ExpressionParser::parseFunction(const std::string &s)
 		}
 		// We found the next argument of the function.
 		if((level == 0) && (s[cid] == ',')) {
-			ExpressionParser p(m_variables, real_s, real_shift + prev_id);
+			ExpressionParser p(m_variables, m_operators, real_s, real_shift + prev_id);
 			curcell->func.args.push_back(p.parse(s.substr(prev_id, cid - prev_id)));
 			prev_id = cid + 1;
 		}
 	}
-	ExpressionParser p(m_variables, real_s, real_shift + prev_id);
+	ExpressionParser p(m_variables, m_operators, real_s, real_shift + prev_id);
 	curcell->func.args.push_back(p.parse(s.substr(prev_id, cid - prev_id)));
 	if(curcell->func.args.size() > f->args_num) {
 		throwError("Invalid number of arguments: ", cid);

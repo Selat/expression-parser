@@ -14,14 +14,14 @@ struct Function;
 
 typedef std::function<double(const std::vector <double>&)> FuncLambda;
 typedef std::vector<Function> Functions;
-typedef const std::vector <double> Args;
+typedef std::vector <double> Args;
+typedef std::map <std::string, double> Vars;
 
 struct Function
 {
 	enum Type {PREFIX, INFIX, POSTFIX, NONE};
 	// Precedence is only for operators
-
-	// For infix/postfix operators (these always have exactly one argument).
+	// For prefix/postfix operators (these always have exactly one argument).
 	Function(const std::string &s, int p, const FuncLambda &f, Type _type) :
 		name(s), precedence(p), func(f), type(_type), args_num(1), is_commutative(false)
 	{
@@ -39,9 +39,18 @@ struct Function
 		name(s), precedence(0), func(f), args_num(n), is_commutative(false)
 	{
 	}
+
+	Function(const Function &f) :
+		name(f.name), precedence(f.precedence), func(f.func), type(f.type), args_num(f.args_num), is_commutative(f.is_commutative)
+	{
+	}
+	const Function &operator=(const Function &f)
+	{
+		return *this;
+	}
 	std::string name;
 	int precedence;
-	const FuncLambda &func;
+	const FuncLambda func;
 	Type type;
 	size_t args_num;
 	bool is_commutative;
@@ -58,6 +67,7 @@ struct Cell
 	}
 
 	void print();
+	double eval();
 
 	enum Type {FUNCTION, NUMBER, VARIABLE, NONE} type;
 	struct
@@ -75,7 +85,7 @@ struct Cell
 class ExpressionParser
 {
 public:
-	ExpressionParser(std::map <std::string, double> &variables);
+	ExpressionParser(std::map <std::string, double> &variables, const Functions &operators);
 	Cell* parse(const std::string &s);
 	void parseNextToken(const std::string &s);
 	void parseNumber(const std::string &s);
@@ -93,7 +103,7 @@ public:
 	static bool isParenthesis(char c);
 	static bool isVarBeginning(char c);
 
-	static bool isOperator(const std::string &s, size_t id);
+	bool isOperator(const std::string &s, size_t id);
 	static bool isFunction(const std::string &s, size_t id);
 
 	static bool isConstant(const std::string &s, size_t id);
@@ -101,11 +111,11 @@ public:
 	int seekNumber(const std::string &s, size_t id);
 	int seekVar(const std::string &s, size_t id);
 protected:
-	ExpressionParser(std::map <std::string, double> &variables,
+	ExpressionParser(std::map <std::string, double> &variables, const Functions &m_operators,
 	                 const std::string &_real_s, size_t shift);
 
 	static const std::string m_whitespaces;
-	static const Functions m_operators;
+	const Functions &m_operators;
 	static const Functions m_functions;
 
 	std::map <std::string, double> &m_variables;
@@ -142,6 +152,7 @@ public:
 protected:
 	Cell *m_root;
 	std::map <std::string, double> m_variables;
+	static const Functions m_operators;
 };
 
 #endif

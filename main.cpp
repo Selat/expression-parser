@@ -11,6 +11,5 @@ int main()
 	string s;
 	getline(cin, s);
 	Expression e(s);
-	Cell cell;
 	return 0;
 }
