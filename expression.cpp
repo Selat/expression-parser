@@ -205,6 +205,9 @@ void ExpressionParser::parseOperator(const std::string &s)
 void ExpressionParser::parseFunction(const std::string &s)
 {
 	auto f = findItem(s, id, m_functions);
+	if(f == m_functions.end()) {
+		throwError("Undefined function: ", id);
+	}
 	size_t cid = id + f->name.length();
 	while((cid < s.length()) && isWhitespace(s[cid])) ++cid;
 	if((cid >= s.length()) || (s[cid] != '(')) {
@@ -306,7 +309,16 @@ bool ExpressionParser::isOperator(const std::string &s, size_t id)
 
 bool ExpressionParser::isFunction(const std::string &s, size_t id)
 {
-	return findItem(s, id, m_functions) != m_functions.end();
+	// Function should be of the following form:
+	// TODO: fix errors in regexp:
+	// "^[[:alpha:]][[:alnum:]]*[[:space:]]*("
+	size_t start = id;
+	while((id < s.length()) && (isalpha(s[id]) || (isdigit(s[id])))) ++id;
+	if((id < s.length()) && (id > start)) {
+		while((id < s.length()) && isWhitespace(s[id])) ++id;
+		return (id < s.length()) && (s[id] == '(');
+	}
+	return false;
 }
 
 bool ExpressionParser::isConstant(const std::string &s, size_t id)
