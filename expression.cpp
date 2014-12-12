@@ -10,10 +10,11 @@ using std::endl;
 
 const std::string ExpressionParser::m_whitespaces = " \t\n";
 const Functions ExpressionParser::m_operators = {
-	Function("+", 10, [&](Args &a){return a[0] + a[1];}),
-	Function("-", 10, [&](Args &a){return a[0] - a[1];}),
-	Function("*", 20, [&](Args &a){return a[0] * a[1];}),
-	Function("/", 20, [&](Args &a){return a[0] / a[1];})};
+	Function("+", 10, [&](Args &a){return a[0] + a[1];}, true),
+	Function("-", 10, [&](Args &a){return a[0] - a[1];}, false),
+	Function("*", 20, [&](Args &a){return a[0] * a[1];}, true),
+	Function("/", 20, [&](Args &a){return a[0] / a[1];}, false),
+	Function("-", 40, [&](Args &a){return a[0] * a[1];}, Function::Type::PREFIX)};
 const Functions ExpressionParser::m_functions = {
 	Function("abs", [&](Args &a){return abs(a[0]);}),
 	Function("ceil", [&](Args &a){return ceil(a[0]);}),
@@ -89,27 +90,32 @@ Cell* ExpressionParser::parse(const std::string &s)
 	last_op_id = 0;
 
 	while(id < s.length()) {
-		if(isWhitespace(s[id])) {
-			++id;
-		} else if(!is_prev_num && isConstant(s, id)) {
-			parseNumber(s);
-		} else if(isOperator(s, id)) {
-			last_op_id = id;
-			parseOperator(s);
-		} else if(isFunction(s, id)) {
-			parseFunction(s);
-		} else if(isParenthesis(s[id])) {
-			parseParenthesis(s);
-		} else if(isalpha(s[id])) {
-			parseVariable(s);
-		} else {
-			throwError("Unrecognised token: ", id);
-		}
+		parseNextToken(s);
 	}
 	if(curcell->type == Cell::Type::NONE) {
 		throwError("Right argument for operator not found: ", last_op_id);
 	}
 	return root;
+}
+
+void ExpressionParser::parseNextToken(const std::string &s)
+{
+	if(isWhitespace(s[id])) {
+		++id;
+	} else if(!is_prev_num && isConstant(s, id)) {
+		parseNumber(s);
+	} else if(isOperator(s, id)) {
+		last_op_id = id;
+		parseOperator(s);
+	} else if(isFunction(s, id)) {
+		parseFunction(s);
+	} else if(isParenthesis(s[id])) {
+		parseParenthesis(s);
+	} else if(isVarBeginning(s[id])) {
+		parseVariable(s);
+	} else {
+		throwError("Unrecognised token: ", id);
+	}
 }
 
 void ExpressionParser::parseVariable(const std::string &s)
@@ -166,11 +172,55 @@ void ExpressionParser::parseParenthesis(const std::string &s)
 
 void ExpressionParser::parseOperator(const std::string &s)
 {
-	auto f = findItem(s, id, m_operators);
+	Functions::const_iterator f;
 	if(!is_prev_num) {
-		throwError("Expected value before the operator: ", id);
+		// We have to parse it as prefix operator because previous token is some operator.
+		f = findItem(s, id, m_operators, Function::Type::PREFIX);
+		if(f != m_operators.end()) {
+			// Read argument of the operator.
+			size_t start = id;
+			id += f->name.length();
+			while((id < s.length()) && isWhitespace(s[id])) ++id;
+			if(id < s.length()) {
+				parseNextToken(s);
+			} else {
+				throwError("Argument for prefix operator isn't found: ", start);
+			}
+			is_prev_num = true;
+		} else {
+			throwError("Expected prefix operator: ", id);
+		}
+	} else {
+		// We have to parse it as infix/postfix operator because previous token is some value.
+		// First argument for these operators is already stored for us in curcell, so we don't have to do anything.
+		// Check next token ("value" - for infix operator, "operator" - for postfix operator) to choose right operator.
+		size_t start = id;
+		++id;
+		while((id < s.length()) && isWhitespace(s[id])) ++id;
+		bool second_val = (id < s.length()) || isConstant(s, id) || isFunction(s, id) || isVarBeginning(s[id]) || (s[id] == '(');
+		if((id < s.length()) && second_val) {
+			id = start;
+			f = findItem(s, id, m_operators, Function::Type::INFIX);
+			if(f != m_operators.end()) {
+				// Restore value of 
+				id += f->name.length();
+				is_prev_num = false;
+			} else {
+				throwError("Expected infix operator: ", start);
+			}
+		} else {
+			id = start;
+			f = findItem(s, id, m_operators, Function::Type::POSTFIX);
+			if(f != m_operators.end()) {
+				// Restore value of id
+				is_prev_num = true;
+				cout << "fucking found!" << endl;
+				id += f->name.length();
+			} else {
+				throwError("Expected postfix operator: ", id);
+			}
+		}
 	}
-	is_prev_num = false;
 	Cell *tcell = new Cell();
 	if(curcell == root) {
 		root = tcell;
@@ -196,10 +246,11 @@ void ExpressionParser::parseOperator(const std::string &s)
 	tcell->type = Cell::Type::FUNCTION;
 	tcell->func.iter = f;
 	tcell->func.args.push_back(curcell);
-	curcell = new Cell();
-	tcell->func.args.push_back(curcell);
+	if(f->type == Function::Type::INFIX) {
+		curcell = new Cell();
+		tcell->func.args.push_back(curcell);
+	}
 	parents.push_back(tcell);
-	id += f->name.length();
 }
 
 void ExpressionParser::parseFunction(const std::string &s)
@@ -274,13 +325,15 @@ size_t ExpressionParser::findMatchingParenthesis(const std::string &s, size_t id
 	}
 }
 
-Functions::const_iterator ExpressionParser::findItem(const std::string &s, size_t id, const Functions &coll)
+Functions::const_iterator ExpressionParser::findItem(const std::string &s, size_t id, const Functions &coll,
+                                                     Function::Type type)
 {
 	Functions::const_iterator res = coll.end();
 	for(auto i = coll.begin(); i != coll.end(); ++i) {
 		if((s.length() - id >= i->name.length())
 		   && (s.substr(id, i->name.length()) == i->name)
-		   && ((res == coll.end()) || (res->name.length() < i->name.length()))) {
+		   && ((res == coll.end()) || (res->name.length() < i->name.length()))
+		   && ((type == Function::Type::NONE) || (type == i->type))) {
 			res = i;
 		}
 	}

@@ -18,20 +18,25 @@ typedef const std::vector <double> Args;
 
 struct Function
 {
-	enum Type {PREFIX, INFIX, POSTFIX};
+	enum Type {PREFIX, INFIX, POSTFIX, NONE};
 	// Precedence is only for operators
-	Function(const std::string &s, int p, const FuncLambda &f, Type _type = Type::INFIX, size_t _args_num = 2) :
-		name(s), precedence(p), func(f), type(_type), args_num(_args_num)
+
+	// For infix/postfix operators (these always have exactly one argument).
+	Function(const std::string &s, int p, const FuncLambda &f, Type _type) :
+		name(s), precedence(p), func(f), type(_type), args_num(1), is_commutative(false)
 	{
-		if(type == Type::INFIX) {
-			assert(_args_num == 2);
-			args_num = 2;
-		} else {
-			args_num = _args_num;
-		}
+		assert(type != Type::INFIX);
 	}
+
+	// For infix operators
+	Function(const std::string &s, int p, const FuncLambda &f, bool _is_commutative) :
+		name(s), precedence(p), func(f), type(Type::INFIX), args_num(2), is_commutative(_is_commutative)
+	{
+	}
+
+	// For functions
 	Function(const std::string &s, const FuncLambda &f, int n = 1) :
-		name(s), precedence(0), func(f), args_num(n)
+		name(s), precedence(0), func(f), args_num(n), is_commutative(false)
 	{
 	}
 	std::string name;
@@ -39,6 +44,7 @@ struct Function
 	const FuncLambda &func;
 	Type type;
 	size_t args_num;
+	bool is_commutative;
 };
 
 struct Cell
@@ -71,6 +77,7 @@ class ExpressionParser
 public:
 	ExpressionParser(std::map <std::string, double> &variables);
 	Cell* parse(const std::string &s);
+	void parseNextToken(const std::string &s);
 	void parseNumber(const std::string &s);
 	void parseVariable(const std::string &s);
 	void parseParenthesis(const std::string &s);
@@ -80,7 +87,8 @@ public:
 	void throwError(const std::string &msg, size_t id);
 
 	size_t findMatchingParenthesis(const std::string &s, size_t id);
-	static Functions::const_iterator findItem(const std::string &s, size_t id, const Functions &coll);
+	static Functions::const_iterator findItem(const std::string &s, size_t id, const Functions &coll,
+	                                          Function::Type type = Function::Type::NONE);
 	static bool isWhitespace(char c);
 	static bool isParenthesis(char c);
 	static bool isVarBeginning(char c);
