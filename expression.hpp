@@ -82,10 +82,28 @@ struct Cell
 	double val;
 };
 
+struct ExpressionParserSettings
+{
+public:
+	ExpressionParserSettings(const std::string &_whitespaces, const Functions &_operators, const Functions &_functions,
+	                         std::map <std::string, double> &_variables) :
+		whitespaces(_whitespaces), operators(_operators), functions(_functions), variables(_variables)
+	{
+	}
+	ExpressionParserSettings(const ExpressionParserSettings &s) :
+		whitespaces(s.whitespaces), operators(s.operators), functions(s.functions), variables(s.variables)
+	{
+	}
+	const std::string &whitespaces;
+	const Functions &operators;
+	const Functions &functions;
+	std::map <std::string, double> &variables;
+};
+
 class ExpressionParser
 {
 public:
-	ExpressionParser(std::map <std::string, double> &variables, const Functions &operators);
+	ExpressionParser(ExpressionParserSettings &s);
 	Cell* parse(const std::string &s);
 	void parseNextToken(const std::string &s);
 	void parseNumber(const std::string &s);
@@ -99,26 +117,22 @@ public:
 	size_t findMatchingParenthesis(const std::string &s, size_t id);
 	static Functions::const_iterator findItem(const std::string &s, size_t id, const Functions &coll,
 	                                          Function::Type type = Function::Type::NONE);
-	static bool isWhitespace(char c);
-	static bool isParenthesis(char c);
-	static bool isVarBeginning(char c);
+	bool isWhitespace(char c);
+	bool isParenthesis(char c);
+	bool isVarBeginning(char c);
 
 	bool isOperator(const std::string &s, size_t id);
-	static bool isFunction(const std::string &s, size_t id);
+	bool isFunction(const std::string &s, size_t id);
 
-	static bool isConstant(const std::string &s, size_t id);
+	bool isConstant(const std::string &s, size_t id);
 
 	int seekNumber(const std::string &s, size_t id);
 	int seekVar(const std::string &s, size_t id);
 protected:
-	ExpressionParser(std::map <std::string, double> &variables, const Functions &m_operators,
+	ExpressionParser(ExpressionParserSettings &s,
 	                 const std::string &_real_s, size_t shift);
 
-	static const std::string m_whitespaces;
-	const Functions &m_operators;
-	static const Functions m_functions;
-
-	std::map <std::string, double> &m_variables;
+	ExpressionParserSettings &settings;
 
 	size_t id;
 	Cell *root;
@@ -152,7 +166,9 @@ public:
 protected:
 	Cell *m_root;
 	std::map <std::string, double> m_variables;
+	static const std::string m_whitespaces;
 	static const Functions m_operators;
+	static const Functions m_functions;
 };
 
 #endif

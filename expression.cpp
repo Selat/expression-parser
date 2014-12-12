@@ -8,14 +8,14 @@
 using std::cout;
 using std::endl;
 
-const std::string ExpressionParser::m_whitespaces = " \t\n";
+const std::string Expression::m_whitespaces = " \t\n";
 const Functions Expression::m_operators = {
 	Function("+", 10, [=](const Args &a){return a[0] + a[1];}, true),
 	Function("-", 10, [&](const Args &a){return a[0] - a[1];}, false),
 	Function("*", 20, [&](const Args &a){return a[0] * a[1];}, true),
 	Function("/", 20, [&](const Args &a){return a[0] / a[1];}, false),
-	Function("-", 40, [&](const Args &a){return a[0] * a[1];}, Function::Type::PREFIX)};
-const Functions ExpressionParser::m_functions = {
+	Function("-", 40, [&](const Args &a){return -a[0];}, Function::Type::PREFIX)};
+const Functions Expression::m_functions = {
 	Function("abs", [&](const Args &a){return abs(a[0]);}),
 	Function("ceil", [&](const Args &a){return ceil(a[0]);}),
 	Function("floor", [&](const Args &a){return floor(a[0]);}),
@@ -84,24 +84,22 @@ double Cell::eval()
 	}
 }
 
-ExpressionParser::ExpressionParser(std::map <std::string, double> &variables,
-                                   const Functions &operators) :
-	m_operators(operators), m_variables(variables), real_shift(0), is_recursive_call(false)
+ExpressionParser::ExpressionParser(ExpressionParserSettings &_settings) :
+	settings(_settings), real_shift(0), is_recursive_call(false)
 {
 }
 
-ExpressionParser::ExpressionParser(std::map <std::string, double> &variables,
-                                   const Functions &operators,
+ExpressionParser::ExpressionParser(ExpressionParserSettings &_settings,
                                    const std::string &_real_s, size_t shift) :
-	m_operators(operators), m_variables(variables), real_s(_real_s),
-	real_shift(shift), is_recursive_call(true)
+	settings(_settings), real_s(_real_s), real_shift(shift), is_recursive_call(true)
 {
 }
 
 Expression::Expression(const std::string &s) :
 	m_root(nullptr)
 {
-	ExpressionParser p(m_variables, m_operators);
+	ExpressionParserSettings set(m_whitespaces, m_operators, m_functions, m_variables);
+	ExpressionParser p(set);
 	m_root = p.parse(s);
 	cout << "You entered: " << endl;
 	m_root->print();
@@ -162,9 +160,9 @@ void ExpressionParser::parseVariable(const std::string &s)
 	int start = id;
 	id = seekVar(s, id);
 	std::string varname = s.substr(start, id - start);
-	m_variables[varname] = 0.0;
+	settings.variables[varname] = 0.0;
 	curcell->type = Cell::Type::VARIABLE;
-	curcell->var.iter = m_variables.find(varname);
+	curcell->var.iter = settings.variables.find(varname);
 	is_prev_num = true;
 }
 
@@ -193,7 +191,7 @@ void ExpressionParser::parseParenthesis(const std::string &s)
 	}
 	int end = findMatchingParenthesis(s, id);
 	++id;
-	ExpressionParser p(m_variables, m_operators, real_s, real_shift + id);
+	ExpressionParser p(settings, real_s, real_shift + id);
 	Cell *tcell = p.parse(s.substr(id, end - id));
 	if(parents.empty()) {
 		delete root;
@@ -211,8 +209,8 @@ void ExpressionParser::parseOperator(const std::string &s)
 	Functions::const_iterator f;
 	if(!is_prev_num) {
 		// We have to parse it as prefix operator because previous token is some operator.
-		f = findItem(s, id, m_operators, Function::Type::PREFIX);
-		if(f != m_operators.end()) {
+		f = findItem(s, id, settings.operators, Function::Type::PREFIX);
+		if(f != settings.operators.end()) {
 			// Read argument of the operator.
 			size_t start = id;
 			id += f->name.length();
@@ -236,8 +234,8 @@ void ExpressionParser::parseOperator(const std::string &s)
 		bool second_val = (id < s.length()) || isConstant(s, id) || isFunction(s, id) || isVarBeginning(s[id]) || (s[id] == '(');
 		if((id < s.length()) && second_val) {
 			id = start;
-			f = findItem(s, id, m_operators, Function::Type::INFIX);
-			if(f != m_operators.end()) {
+			f = findItem(s, id, settings.operators, Function::Type::INFIX);
+			if(f != settings.operators.end()) {
 				// Restore value of
 				id += f->name.length();
 				is_prev_num = false;
@@ -246,8 +244,8 @@ void ExpressionParser::parseOperator(const std::string &s)
 			}
 		} else {
 			id = start;
-			f = findItem(s, id, m_operators, Function::Type::POSTFIX);
-			if(f != m_operators.end()) {
+			f = findItem(s, id, settings.operators, Function::Type::POSTFIX);
+			if(f != settings.operators.end()) {
 				// Restore value of id
 				is_prev_num = true;
 				cout << "fucking found!" << endl;
@@ -279,12 +277,6 @@ void ExpressionParser::parseOperator(const std::string &s)
 			parents.pop_back();
 		}
 	}
-	{
-		Args args;
-		args.push_back(1);
-		args.push_back(1);
-		std::cout << "Test: " << f->func(args) << std::endl;
-	}
 	tcell->type = Cell::Type::FUNCTION;
 	tcell->func.iter = f;
 	tcell->func.args.push_back(curcell);
@@ -297,8 +289,8 @@ void ExpressionParser::parseOperator(const std::string &s)
 
 void ExpressionParser::parseFunction(const std::string &s)
 {
-	auto f = findItem(s, id, m_functions);
-	if(f == m_functions.end()) {
+	auto f = findItem(s, id, settings.functions);
+	if(f == settings.functions.end()) {
 		throwError("Undefined function: ", id);
 	}
 	size_t cid = id + f->name.length();
@@ -319,12 +311,12 @@ void ExpressionParser::parseFunction(const std::string &s)
 		}
 		// We found the next argument of the function.
 		if((level == 0) && (s[cid] == ',')) {
-			ExpressionParser p(m_variables, m_operators, real_s, real_shift + prev_id);
+			ExpressionParser p(settings, real_s, real_shift + prev_id);
 			curcell->func.args.push_back(p.parse(s.substr(prev_id, cid - prev_id)));
 			prev_id = cid + 1;
 		}
 	}
-	ExpressionParser p(m_variables, m_operators, real_s, real_shift + prev_id);
+	ExpressionParser p(settings, real_s, real_shift + prev_id);
 	curcell->func.args.push_back(p.parse(s.substr(prev_id, cid - prev_id)));
 	if(curcell->func.args.size() > f->args_num) {
 		throwError("Invalid number of arguments: ", cid);
@@ -384,7 +376,7 @@ Functions::const_iterator ExpressionParser::findItem(const std::string &s, size_
 
 bool ExpressionParser::isWhitespace(char c)
 {
-	return (m_whitespaces.find(c) != std::string::npos);
+	return (settings.whitespaces.find(c) != std::string::npos);
 }
 
 bool ExpressionParser::isParenthesis(char c)
@@ -399,7 +391,7 @@ bool ExpressionParser::isVarBeginning(char c)
 
 bool ExpressionParser::isOperator(const std::string &s, size_t id)
 {
-	return findItem(s, id, m_operators) != m_operators.end();
+	return findItem(s, id, settings.operators) != settings.operators.end();
 }
 
 bool ExpressionParser::isFunction(const std::string &s, size_t id)
