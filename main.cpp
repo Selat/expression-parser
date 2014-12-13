@@ -10,6 +10,9 @@ int main()
 {
 	string s;
 	getline(cin, s);
-	Expression e(s);
+	Expression e1(s);
+	getline(cin, s);
+	Expression e2(s);
+	cout << e1.isSubExpression(e2) << endl;
 	return 0;
 }
