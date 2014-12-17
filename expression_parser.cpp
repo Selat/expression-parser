@@ -10,13 +10,62 @@ using std::endl;
 
 const double EPS = 1.0E-5;
 
+Cell::Cell() :
+	type(Type::NONE)
+{
+}
+
+Cell::Cell(const Cell &c)
+{
+	*this = c;
+}
+
+Cell::~Cell()
+{
+	if(type == Type::FUNCTION) {
+		for(auto i : func.args) {
+			delete i;
+		}
+	}
+}
+
+Cell& Cell::operator=(const Cell &c)
+{
+	type = c.type;
+	switch(type) {
+	case Type::FUNCTION:
+	{
+		func.iter = c.func.iter;
+		for(auto i : c.func.args) {
+			func.args.push_back(new Cell(*i));
+		}
+		break;
+	}
+	case Type::VARIABLE:
+	{
+		var.name = c.var.name;
+		break;
+	}
+	case Type::NUMBER:
+	{
+		val = c.val;
+		break;
+	}
+	default:
+	{
+		break;
+	}
+	}
+	return *this;
+}
+
 bool Cell::operator<(const Cell &c) const
 {
 	if((c.type == Type::FUNCTION) && (type == Type::FUNCTION)) {
 		auto i1 = func.iter, i2 = c.func.iter;
 		return (i1->name < i2->name) || ((i1->name == i2->name) && (i1->args_num < i2->args_num));
 	} else if((c.type == Type::VARIABLE) && (type == Type::VARIABLE)) {
-		return var.iter->first < c.var.iter->first;
+		return var.name < c.var.name;
 	} else if((c.type == Type::NUMBER) && (type == Type::NUMBER)) {
 		return val < c.val;
 	} else if(((type == Type::VARIABLE) && (c.type == Type::NUMBER))
@@ -29,7 +78,6 @@ bool Cell::operator<(const Cell &c) const
 
 bool Cell::operator==(const Cell &c) const
 {
-	cout << "ok!" << endl;
 	if((type == Type::FUNCTION) && (c.type == Type::FUNCTION) && (func.iter == c.func.iter)) {
 		bool ok = true;
 		for(size_t i = 0; i < func.args.size(); ++i) {
@@ -39,13 +87,12 @@ bool Cell::operator==(const Cell &c) const
 		}
 		return ok;
 	} else if((type == Type::VARIABLE) && (c.type == Type::VARIABLE)) {
-		return var.iter->first == c.var.iter->first;
+		return var.name == c.var.name;
 	} else if((type == Type::NUMBER) && (c.type == Type::NUMBER)) {
 		return fabs(val - c.val) < EPS;
 	} else {
 		return false;
 	}
-	cout << "end!"<< endl;
 }
 
 void Cell::print() const
@@ -59,27 +106,28 @@ void Cell::print() const
 		}
 		cout << ")";
 	} else if(type == Type::VARIABLE) {
-		cout << var.iter->first;
+		cout << var.name;
 	} else if(type == Type::NUMBER) {
 		cout << val;
 	}
 }
 
-double Cell::eval()
+double Cell::eval(const std::map <std::string, double> &vars)
 {
 	switch(type) {
 	case Type::FUNCTION:
 	{
 		Args args;
 		for(auto i : func.args) {
-			args.push_back(i->eval());
+			args.push_back(i->eval(vars));
 		}
 		return func.iter->func(args);
 		break;
 	}
 	case Type::VARIABLE:
 	{
-		return var.iter->second;
+		auto it = vars.find(var.name);
+		return it->second;
 		break;
 	}
 	case Type::NUMBER:
@@ -96,7 +144,7 @@ bool Cell::isSubExpression(std::vector <Cell*> &curcell, bool &subtree_match) co
 {
 	// Invariant relation:
 	// curcell - path from root to one of the leaves in a assumed subtree that
-	// haven't been matched yet
+	// hasn't been matched yet
 	if(type == Type::FUNCTION) {
 		bool tsm;
 		subtree_match = true;
@@ -227,7 +275,7 @@ void ExpressionParser::parseVariable(const std::string &s)
 	std::string varname = s.substr(start, id - start);
 	settings.variables[varname] = 0.0;
 	curcell->type = Cell::Type::VARIABLE;
-	curcell->var.iter = settings.variables.find(varname);
+	curcell->var.name = varname;
 	is_prev_num = true;
 }
 
@@ -313,7 +361,6 @@ void ExpressionParser::parseOperator(const std::string &s)
 			if(f != settings.operators.end()) {
 				// Restore value of id
 				is_prev_num = true;
-				cout << "fucking found!" << endl;
 				id += f->name.length();
 			} else {
 				throwError("Expected postfix operator: ", id);

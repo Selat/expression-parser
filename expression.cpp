@@ -4,6 +4,21 @@
 #include <iostream>
 #include <cmath>
 
+#define DEFINE_OPERATOR(op)						\
+	Expression& Expression::operator op## =	(const Expression &e)	\
+	{											\
+		addFunction(findFunction(#op, Function::Type::INFIX), e);	\
+		return *this;							\
+	}											\
+
+#define DEFINE_OPERATORV(op)					\
+	Expression Expression::operator op(const Expression &e) const	\
+	{											\
+		Expression	res(*this);					\
+		res op## = e;							\
+		return res;								\
+	}
+
 using std::cout;
 using std::endl;
 
@@ -57,10 +72,42 @@ Expression::Expression(const std::string &s) :
 	// cout << m_root->eval() << endl;
 }
 
+Expression::Expression(const Expression &e) :
+	m_root(nullptr),
+	m_variables(e.m_variables)
+{
+	m_root = new Cell(*e.m_root);
+}
+
+Expression& Expression::operator=(const Expression &e)
+{
+	if(m_root != nullptr) {
+		delete m_root;
+	}
+	new Cell(*e.m_root);
+	m_variables = e.m_variables;
+	return *this;
+}
+
 bool Expression::operator==(const Expression &e) const
 {
 	return (m_root == e.m_root) || (*m_root == *e.m_root);
 }
+
+bool Expression::operator!=(const Expression &e) const
+{
+	return !(*this == e);
+}
+
+DEFINE_OPERATOR(+);
+DEFINE_OPERATOR(-);
+DEFINE_OPERATOR(*);
+DEFINE_OPERATOR(/);
+
+DEFINE_OPERATORV(+);
+DEFINE_OPERATORV(-);
+DEFINE_OPERATORV(*);
+DEFINE_OPERATORV(/);
 
 bool Expression::isSubExpression(const Expression &e) const
 {
@@ -71,4 +118,26 @@ bool Expression::isSubExpression(const Expression &e) const
 	}
 	bool tmp;
 	return m_root->isSubExpression(curcell, tmp);
+}
+
+Functions::const_iterator Expression::findFunction(const std::string &name, Function::Type type)
+{
+	Functions::const_iterator res = m_operators.end();
+	for(auto i = m_operators.begin(); i != m_operators.end(); ++i) {
+		if((type == i->type) && (name == i->name)) {
+			res = i;
+		}
+	}
+	return res;
+}
+
+void Expression::addFunction(const Functions::const_iterator &f, const Expression &e)
+{
+	Cell *tmp = m_root;
+	Cell *arg2 = new Cell(*e.m_root);
+	m_root = new Cell();
+	m_root->type = Cell::Type::FUNCTION;
+	m_root->func.iter = f;
+	m_root->func.args.push_back(tmp);
+	m_root->func.args.push_back(arg2);
 }

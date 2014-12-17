@@ -45,10 +45,6 @@ struct Function
 		name(f.name), precedence(f.precedence), func(f.func), type(f.type), args_num(f.args_num), is_commutative(f.is_commutative)
 	{
 	}
-	const Function &operator=(const Function &f)
-	{
-		return *this;
-	}
 	std::string name;
 	int precedence;
 	const FuncLambda func;
@@ -59,20 +55,18 @@ struct Function
 
 struct Cell
 {
-	Cell() :
-		type(Type::NONE)
-	{
-	}
-	~Cell()
-	{
-	}
+	Cell();
+	Cell(const Cell &c);
+	~Cell();
+
+	Cell& operator=(const Cell &c);
 
 	bool operator<(const Cell &c) const;
 	bool operator==(const Cell &c) const;
 
 	void print() const;
 	void sort();
-	double eval();
+	double eval(const std::map <std::string, double> &vars);
 	bool isSubExpression(std::vector <Cell*> &curcell, bool &subtree_match) const;
 
 	enum Type {FUNCTION, NUMBER, VARIABLE, NONE} type;
@@ -83,7 +77,7 @@ struct Cell
 	} func;
 	struct
 	{
-		std::map <std::string, double>::iterator iter;
+		std::string name;
 	} var;
 	double val;
 };
