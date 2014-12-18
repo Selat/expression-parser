@@ -24,35 +24,35 @@ using std::endl;
 
 const std::string Expression::m_whitespaces = " \t\n";
 const Functions Expression::m_operators = {
-	Function("+", 10, [=](const Args &a){return a[0] + a[1];}, true),
-	Function("-", 10, [&](const Args &a){return a[0] - a[1];}, false),
-	Function("*", 20, [&](const Args &a){return a[0] * a[1];}, true),
-	Function("/", 20, [&](const Args &a){return a[0] / a[1];}, false),
-	Function("-", 40, [&](const Args &a){return -a[0];}, Function::Type::PREFIX)};
+	Function("+", 10, [](const Args &a){return a[0] + a[1];}, true),
+	Function("-", 10, [](const Args &a){return a[0] - a[1];}, false),
+	Function("*", 20, [](const Args &a){return a[0] * a[1];}, true),
+	Function("/", 20, [](const Args &a){return a[0] / a[1];}, false),
+	Function("-", 40, [](const Args &a){return -a[0];}, Function::Type::PREFIX)};
 const Functions Expression::m_functions = {
-	Function("abs", [&](const Args &a){return abs(a[0]);}),
-	Function("ceil", [&](const Args &a){return ceil(a[0]);}),
-	Function("floor", [&](const Args &a){return floor(a[0]);}),
-	Function("max", [&](const Args &a){return std::max(a[0], a[1]);}, 2),
-	Function("min", [&](const Args &a){return std::min(a[0], a[1]);}, 2),
+	Function("abs", [](const Args &a){return std::abs(a[0]);}),
+	Function("ceil", [](const Args &a){return ceil(a[0]);}),
+	Function("floor", [](const Args &a){return floor(a[0]);}),
+	Function("max", [](const Args &a){return std::max(a[0], a[1]);}, 2),
+	Function("min", [](const Args &a){return std::min(a[0], a[1]);}, 2),
 
-	Function("sin", [&](const Args &a){return sin(a[0]);}),
-	Function("cos", [&](const Args &a){return cos(a[0]);}),
-	Function("tan", [&](const Args &a){return tan(a[0]);}),
-	Function("ctg", [&](const Args &a){return 1.0 / tan(a[0]);}),
-	Function("asin", [&](const Args &a){return asin(a[0]);}),
-	Function("acos", [&](const Args &a){return acos(a[0]);}),
-	Function("atan", [&](const Args &a){return atan(a[0]);}),
-	Function("atan2", [&](const Args &a){return atan2(a[0], a[1]);}, 2),
+	Function("sin", [](const Args &a){return sin(a[0]);}),
+	Function("cos", [](const Args &a){return cos(a[0]);}),
+	Function("tan", [](const Args &a){return tan(a[0]);}),
+	Function("ctg", [](const Args &a){return 1.0 / tan(a[0]);}),
+	Function("asin", [](const Args &a){return asin(a[0]);}),
+	Function("acos", [](const Args &a){return acos(a[0]);}),
+	Function("atan", [](const Args &a){return atan(a[0]);}),
+	Function("atan2", [](const Args &a){return atan2(a[0], a[1]);}, 2),
 
-	Function("cosh", [&](const Args &a){return cosh(a[0]);}),
-	Function("sinh", [&](const Args &a){return sinh(a[0]);}),
-	Function("tanh", [&](const Args &a){return tanh(a[0]);}),
-	Function("ctgh", [&](const Args &a){return 1.0 / (a[0]);}),
-	Function("acosh", [&](const Args &a){return acosh(a[0]);}),
-	Function("asinh", [&](const Args &a){return asinh(a[0]);}),
-	Function("atanh", [&](const Args &a){return atanh(a[0]);}),
-	Function("actgh", [&](const Args &a){return atanh(1.0 /a[0]);})};
+	Function("cosh", [](const Args &a){return cosh(a[0]);}),
+	Function("sinh", [](const Args &a){return sinh(a[0]);}),
+	Function("tanh", [](const Args &a){return tanh(a[0]);}),
+	Function("ctgh", [](const Args &a){return 1.0 / (a[0]);}),
+	Function("acosh", [](const Args &a){return acosh(a[0]);}),
+	Function("asinh", [](const Args &a){return asinh(a[0]);}),
+	Function("atanh", [](const Args &a){return atanh(a[0]);}),
+	Function("actgh", [](const Args &a){return atanh(1.0 /a[0]);})};
 
 Expression::Expression(const std::string &s) :
 	m_root(nullptr)
@@ -130,7 +130,7 @@ std::map <std::string, double>& Expression::variables()
 
 double Expression::getVar(size_t id) const
 {
-	if((id < 0) || (id >= m_varnames.size())) {
+	if(id >= m_varnames.size()) {
 		throw ExpressionException("Index out of range");
 	}
 	return m_variables.at(m_varnames[id]);
