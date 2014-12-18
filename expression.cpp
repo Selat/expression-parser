@@ -57,13 +57,16 @@ const Functions Expression::m_functions = {
 Expression::Expression(const std::string &s) :
 	m_root(nullptr)
 {
-	ExpressionParserSettings set(m_whitespaces, m_operators, m_functions, m_variables);
+	ExpressionParserSettings set(m_whitespaces, m_operators, m_functions, m_varnames);
 	ExpressionParser p(set);
 	m_root = p.parse(s);
 	if(m_root) {
 		cout << "You entered: " << endl;
 		m_root->print();
 		cout << endl;
+		for(const auto &s : m_varnames) {
+			m_variables[s] = 0.0;
+		}
 	}
 	// for(auto &i : m_variables) {
 	// 	cout << i.first << " = ";
@@ -120,6 +123,42 @@ bool Expression::isSubExpression(const Expression &e) const
 	return m_root->isSubExpression(curcell, tmp);
 }
 
+std::map <std::string, double>& Expression::variables()
+{
+	return m_variables;
+}
+
+double Expression::getVar(size_t id) const
+{
+	if((id < 0) || (id >= m_varnames.size())) {
+		throw ExpressionException("Index out of range");
+	}
+	return m_variables.at(m_varnames[id]);
+}
+
+double Expression::getVar(const std::string &name) const
+{
+	auto it = m_variables.find(name);
+	if(it == m_variables.end()) {
+		throw ExpressionException("Undefined variable: " + name);
+	}
+	return m_variables.at(name);
+}
+
+void Expression::setVar(size_t id, double val)
+{
+	m_variables[m_varnames[id]] = val;
+}
+
+void Expression::setVar(const std::string &name, double val)
+{
+	auto it = m_variables.find(name);
+	if(it == m_variables.end()) {
+		throw ExpressionException("Undefined variable: " + name);
+	}
+	it->second = val;
+}
+
 Functions::const_iterator Expression::findFunction(const std::string &name, Function::Type type)
 {
 	Functions::const_iterator res = m_operators.end();
@@ -140,4 +179,9 @@ void Expression::addFunction(const Functions::const_iterator &f, const Expressio
 	m_root->func.iter = f;
 	m_root->func.args.push_back(tmp);
 	m_root->func.args.push_back(arg2);
+}
+
+void Expression::print()
+{
+	m_root->print();
 }

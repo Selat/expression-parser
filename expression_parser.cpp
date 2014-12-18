@@ -273,10 +273,20 @@ void ExpressionParser::parseVariable(const std::string &s)
 	int start = id;
 	id = seekVar(s, id);
 	std::string varname = s.substr(start, id - start);
-	settings.variables[varname] = 0.0;
 	curcell->type = Cell::Type::VARIABLE;
 	curcell->var.name = varname;
 	is_prev_num = true;
+
+	bool exist = false;
+	for(const auto &i : settings.variables) {
+		if(i == varname) {
+			exist = true;
+			break;
+		}
+	}
+	if(!exist) {
+		settings.variables.push_back(varname);
+	}
 }
 
 void ExpressionParser::parseNumber(const std::string &s)

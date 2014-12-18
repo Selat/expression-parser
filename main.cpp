@@ -19,5 +19,14 @@ int main()
 	(e2 * e1).print(); cout << endl;
 	(e2 / e1).print(); cout << endl;
 	e2.print();
+	int n;
+	cin >> n;
+	for(int i=  0; i < n; ++i) {
+		size_t id;
+		cin >> id;
+		cout << e1.getVar(id) << endl;
+	}
+	e1.variables()["x"] = 1.0;
+	cout << e1.getVar(0) << endl;
 	return 0;
 }

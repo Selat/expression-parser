@@ -86,7 +86,7 @@ struct ExpressionParserSettings
 {
 public:
 	ExpressionParserSettings(const std::string &_whitespaces, const Functions &_operators, const Functions &_functions,
-	                         std::map <std::string, double> &_variables) :
+	                         std::vector <std::string> &_variables) :
 		whitespaces(_whitespaces), operators(_operators), functions(_functions), variables(_variables)
 	{
 	}
@@ -97,7 +97,7 @@ public:
 	const std::string &whitespaces;
 	const Functions &operators;
 	const Functions &functions;
-	std::map <std::string, double> &variables;
+	std::vector <std::string> &variables;
 };
 
 class ExpressionParser
