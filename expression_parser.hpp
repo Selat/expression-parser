@@ -113,7 +113,7 @@ public:
 	void parseOperator();
 	void parseFunction();
 
-	void throwError(const std::string &msg, size_t id);
+	void throwError(const std::string &msg, size_t id) const;
 
 	Functions::const_iterator findItem(size_t id, const Functions &coll,
 									   Function::Type type = Function::Type::NONE);

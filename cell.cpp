@@ -119,18 +119,15 @@ double Cell::eval(const std::map <std::string, double> &vars)
 			args.push_back(i->eval(vars));
 		}
 		return func.iter->func(args);
-		break;
 	}
 	case Type::VARIABLE:
 	{
 		auto it = vars.find(var.name);
 		return it->second;
-		break;
 	}
 	case Type::NUMBER:
 	{
 		return val;
-		break;
 	}
 	default:
 		throw ExpressionParserException("Attempt to evaluate cell of type \"NONE\"");

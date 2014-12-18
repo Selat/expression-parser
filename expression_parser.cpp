@@ -251,7 +251,7 @@ void ExpressionParser::parseFunction()
 	is_prev_num = true;
 }
 
-void ExpressionParser::throwError(const std::string &msg, size_t id)
+void ExpressionParser::throwError(const std::string &msg, size_t id) const
 {
 	std::stringstream ss;
 	ss << msg << endl;

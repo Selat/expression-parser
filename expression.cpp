@@ -68,11 +68,6 @@ Expression::Expression(const std::string &s) :
 			m_variables[s] = 0.0;
 		}
 	}
-	// for(auto &i : m_variables) {
-	// 	cout << i.first << " = ";
-	// 	std::cin >> i.second;
-	// }
-	// cout << m_root->eval() << endl;
 }
 
 Expression::Expression(const Expression &e) :
@@ -84,11 +79,14 @@ Expression::Expression(const Expression &e) :
 
 Expression& Expression::operator=(const Expression &e)
 {
-	if(m_root != nullptr) {
-		delete m_root;
+	if(this != &e) {
+		if(m_root != nullptr) {
+			delete m_root;
+		}
+		m_root = new Cell(*e.m_root);
+		m_variables = e.m_variables;
+		m_varnames = e.m_varnames;
 	}
-	new Cell(*e.m_root);
-	m_variables = e.m_variables;
 	return *this;
 }
 
