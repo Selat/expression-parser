@@ -36,6 +36,8 @@ public:
 	void setVar(size_t id, double val);
 	void setVar(const std::string &name, double val);
 
+	double eval();
+
 	void print();
 protected:
 	Functions::const_iterator findFunction(const std::string &name, Function::Type type);

@@ -103,35 +103,33 @@ public:
 class ExpressionParser
 {
 public:
-	ExpressionParser(ExpressionParserSettings &s);
-	Cell* parse(const std::string &s);
-	void parseNextToken(const std::string &s);
-	void parseNumber(const std::string &s);
-	void parseVariable(const std::string &s);
-	void parseParenthesis(const std::string &s);
-	void parseOperator(const std::string &s);
-	void parseFunction(const std::string &s);
+	ExpressionParser(ExpressionParserSettings &s, const std::string &_str);
+	Cell* parse();
+	Cell* _parse(size_t &id);
+	void parseNextToken();
+	void parseNumber();
+	void parseVariable();
+	void parseParenthesis();
+	void parseOperator();
+	void parseFunction();
 
 	void throwError(const std::string &msg, size_t id);
 
-	size_t findMatchingParenthesis(const std::string &s, size_t id);
-	static Functions::const_iterator findItem(const std::string &s, size_t id, const Functions &coll,
-	                                          Function::Type type = Function::Type::NONE);
+	Functions::const_iterator findItem(size_t id, const Functions &coll,
+									   Function::Type type = Function::Type::NONE);
 	bool isWhitespace(char c);
 	bool isParenthesis(char c);
 	bool isVarBeginning(char c);
 
-	bool isOperator(const std::string &s, size_t id);
-	bool isFunction(const std::string &s, size_t id);
+	bool isOperator(size_t id);
+	bool isFunction(size_t id);
 
-	bool isConstant(const std::string &s, size_t id);
+	bool isConstant(size_t id);
 
-	int seekNumber(const std::string &s, size_t id);
-	int seekVar(const std::string &s, size_t id);
+	int seekNumber(size_t id);
+	int seekVar(size_t id);
+	void skipWhitespaces();
 protected:
-	ExpressionParser(ExpressionParserSettings &s,
-	                 const std::string &_real_s, size_t shift);
-
 	ExpressionParserSettings &settings;
 
 	size_t id;
@@ -141,9 +139,7 @@ protected:
 	std::vector <Cell*> parents;
 
 	// For displaying errors
-	std::string real_s;
-	size_t real_shift;
-	bool is_recursive_call;
+	const std::string &str;
 	int last_op_id;
 };
 

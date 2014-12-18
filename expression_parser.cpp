@@ -8,72 +8,78 @@
 using std::cout;
 using std::endl;
 
-ExpressionParser::ExpressionParser(ExpressionParserSettings &_settings) :
-	settings(_settings), real_shift(0), is_recursive_call(false)
-{
-}
-
 ExpressionParser::ExpressionParser(ExpressionParserSettings &_settings,
-                                   const std::string &_real_s, size_t shift) :
-	settings(_settings), real_s(_real_s), real_shift(shift), is_recursive_call(true)
+								   const std::string &_str) :
+	settings(_settings), str(_str)
 {
 }
 
-Cell* ExpressionParser::parse(const std::string &s)
+Cell* ExpressionParser::parse()
 {
-	if(s.length() == 0) {
+	if(str.length() == 0) {
 		return nullptr;
 	}
-	if(!is_recursive_call) {
-		real_s = s;
+	size_t id = 0;
+	Cell *res = _parse(id);
+	if(id < str.length()) {
+		if(str[id] == ')') {
+			throwError("Mismatched parentheses: ", id);
+		} else {
+			throwError("Something wrong here: ", id);
+		}
 	}
-	id = 0;
+	res->sort();
+	return res;
+}
+
+Cell* ExpressionParser::_parse(size_t &tid)
+{
+	id = tid;
 	root = new Cell();
 	curcell = root;
 	is_prev_num = false;
-	real_s = real_s;
 	last_op_id = 0;
-
-	while(id < s.length()) {
-		parseNextToken(s);
+	while(id < str.length()) {
+		if((str[id] == ',') || (str[id] == ')')) {
+			break;
+		}
+		parseNextToken();
 	}
 	if(curcell->type == Cell::Type::NONE) {
 		throwError("Right argument for operator not found: ", last_op_id);
 	}
-	if(!is_recursive_call) {
-		root->sort();
-	}
+	tid = id;
 	return root;
 }
 
-void ExpressionParser::parseNextToken(const std::string &s)
+void ExpressionParser::parseNextToken()
 {
-	if(isWhitespace(s[id])) {
+	if(isWhitespace(str[id])) {
 		++id;
-	} else if(!is_prev_num && isConstant(s, id)) {
-		parseNumber(s);
-	} else if(isOperator(s, id)) {
+	} else if(!is_prev_num && isConstant(id)) {
+		parseNumber();
+	} else if(isOperator(id)) {
 		last_op_id = id;
-		parseOperator(s);
-	} else if(isFunction(s, id)) {
-		parseFunction(s);
-	} else if(isParenthesis(s[id])) {
-		parseParenthesis(s);
-	} else if(isVarBeginning(s[id])) {
-		parseVariable(s);
+		parseOperator();
+	} else if(isFunction(id)) {
+		parseFunction();
+	} else if(isParenthesis(str[id])) {
+		parseParenthesis();
+	} else if(isVarBeginning(str[id])) {
+		parseVariable();
 	} else {
 		throwError("Unrecognised token: ", id);
 	}
 }
 
-void ExpressionParser::parseVariable(const std::string &s)
+void ExpressionParser::parseVariable()
 {
 	if(is_prev_num) {
 		throwError("Expected operator between two values: ", id);
 	}
 	int start = id;
-	id = seekVar(s, id);
-	std::string varname = s.substr(start, id - start);
+	id = seekVar(id);
+	std::string varname = str.substr(start, id - start);
 	curcell->type = Cell::Type::VARIABLE;
 	curcell->var.name = varname;
 	is_prev_num = true;
@@ -90,17 +96,17 @@ void ExpressionParser::parseVariable(const std::string &s)
 	}
 }
 
-void ExpressionParser::parseNumber(const std::string &s)
+void ExpressionParser::parseNumber()
 {
 	if(is_prev_num) {
 		throwError("Expected operator between two values: ", id);
 	}
 	int start = id;
-	if(s[id] == '-') {
+	if(str[id] == '-') {
 		++id;
 	}
-	id = seekNumber(s, id);
-	std::stringstream ss(s.substr(start, id - start));
+	id = seekNumber(id);
+	std::stringstream ss(str.substr(start, id - start));
 	double val;
 	ss >> val;
 	curcell->type = Cell::Type::NUMBER;
@@ -108,15 +114,19 @@ void ExpressionParser::parseNumber(const std::string &s)
 	is_prev_num = true;
 }
 
-void ExpressionParser::parseParenthesis(const std::string &s)
+void ExpressionParser::parseParenthesis()
 {
 	if(is_prev_num) {
 		throwError("Expected operator between two values: ", id);
 	}
-	int end = findMatchingParenthesis(s, id);
+	size_t start_id = id;
 	++id;
-	ExpressionParser p(settings, real_s, real_shift + id);
-	Cell *tcell = p.parse(s.substr(id, end - id));
+	ExpressionParser p(settings, str);
+	Cell *tcell = p._parse(id);
+	if(id == str.length()) {
+		throwError("Mismatched parentheses: ", start_id);
+	}
+	++id;
 	if(parents.empty()) {
 		delete root;
 		root = curcell = tcell;
@@ -124,23 +134,22 @@ void ExpressionParser::parseParenthesis(const std::string &s)
 		delete curcell;
 		parents[parents.size() - 1]->func.args[1] = tcell;
 	}
-	id = end + 1;
 	is_prev_num = true;
 }
 
-void ExpressionParser::parseOperator(const std::string &s)
+void ExpressionParser::parseOperator()
 {
 	Functions::const_iterator f;
 	if(!is_prev_num) {
 		// We have to parse it as prefix operator because previous token is some operator.
-		f = findItem(s, id, settings.operators, Function::Type::PREFIX);
+		f = findItem(id, settings.operators, Function::Type::PREFIX);
 		if(f != settings.operators.end()) {
 			// Read argument of the operator.
 			size_t start = id;
 			id += f->name.length();
-			while((id < s.length()) && isWhitespace(s[id])) ++id;
-			if(id < s.length()) {
-				parseNextToken(s);
+			while((id < str.length()) && isWhitespace(str[id])) ++id;
+			if(id < str.length()) {
+				parseNextToken();
 			} else {
 				throwError("Argument for prefix operator isn't found: ", start);
 			}
@@ -154,11 +163,11 @@ void ExpressionParser::parseOperator(const std::string &s)
 		// Check next token ("value" - for infix operator, "operator" - for postfix operator) to choose right operator.
 		size_t start = id;
 		++id;
-		while((id < s.length()) && isWhitespace(s[id])) ++id;
-		bool second_val = (id < s.length()) || isConstant(s, id) || isFunction(s, id) || isVarBeginning(s[id]) || (s[id] == '(');
-		if((id < s.length()) && second_val) {
+		while((id < str.length()) && isWhitespace(str[id])) ++id;
+		bool second_val = (id < str.length()) || isConstant(id) || isFunction(id) || isVarBeginning(str[id]) || (str[id] == '(');
+		if((id < str.length()) && second_val) {
 			id = start;
-			f = findItem(s, id, settings.operators, Function::Type::INFIX);
+			f = findItem(id, settings.operators, Function::Type::INFIX);
 			if(f != settings.operators.end()) {
 				// Restore value of
 				id += f->name.length();
@@ -168,7 +177,7 @@ void ExpressionParser::parseOperator(const std::string &s)
 			}
 		} else {
 			id = start;
-			f = findItem(s, id, settings.operators, Function::Type::POSTFIX);
+			f = findItem(id, settings.operators, Function::Type::POSTFIX);
 			if(f != settings.operators.end()) {
 				// Restore value of id
 				is_prev_num = true;
@@ -210,41 +219,35 @@ void ExpressionParser::parseOperator(const std::string &s)
 	parents.push_back(tcell);
 }
 
-void ExpressionParser::parseFunction(const std::string &s)
+void ExpressionParser::parseFunction()
 {
-	auto f = findItem(s, id, settings.functions);
+	auto f = findItem(id, settings.functions);
 	if(f == settings.functions.end()) {
 		throwError("Undefined function: ", id);
 	}
-	size_t cid = id + f->name.length();
-	while((cid < s.length()) && isWhitespace(s[cid])) ++cid;
-	if((cid >= s.length()) || (s[cid] != '(')) {
-		throwError("Expected list of parameters after the name of the function: ", cid);
+	id += f->name.length();
+	size_t func_name_id = id;
+	skipWhitespaces();
+
+	if((id >= str.length()) || (str[id] != '(')) {
+		throwError("Expected list of parameters after the name of the function: ", id);
 	}
-	size_t end = findMatchingParenthesis(s, cid);
 	curcell->type = Cell::Type::FUNCTION;
 	curcell->func.iter = f;
-	int level = 0;
-	size_t prev_id = cid + 1;
-	for(++cid; cid < end; ++cid) {
-		if(s[cid] == '(') {
-			++level;
-		} else if(s[cid] == ')') {
-			--level;
+	size_t prev_id = id + 1;
+	while(prev_id < str.length()) {
+		ExpressionParser p(settings, str);
+		curcell->func.args.push_back(p._parse(prev_id));
+		if(str[prev_id] == ')') {
+			++prev_id;
+			break;
 		}
-		// We found the next argument of the function.
-		if((level == 0) && (s[cid] == ',')) {
-			ExpressionParser p(settings, real_s, real_shift + prev_id);
-			curcell->func.args.push_back(p.parse(s.substr(prev_id, cid - prev_id)));
-			prev_id = cid + 1;
-		}
+		++prev_id;
 	}
-	ExpressionParser p(settings, real_s, real_shift + prev_id);
-	curcell->func.args.push_back(p.parse(s.substr(prev_id, cid - prev_id)));
-	if(curcell->func.args.size() > f->args_num) {
-		throwError("Invalid number of arguments: ", cid);
+	if(curcell->func.args.size() != f->args_num) {
+		throwError("Invalid number of arguments: ", func_name_id);
 	}
-	id = end + 1;
+	id = prev_id;
 	is_prev_num = true;
 }
 
@@ -252,8 +255,8 @@ void ExpressionParser::throwError(const std::string &msg, size_t id)
 {
 	std::stringstream ss;
 	ss << msg << endl;
-	ss << real_s << endl;
-	int n = id + real_shift;
+	ss << str << endl;
+	int n = id;
 	for(int i = 0; i < n; ++i) {
 		ss << " ";
 	}
@@ -261,34 +264,13 @@ void ExpressionParser::throwError(const std::string &msg, size_t id)
 	throw ExpressionParserException(ss.str());
 }
 
-size_t ExpressionParser::findMatchingParenthesis(const std::string &s, size_t id)
-{
-	int c = 1;
-	size_t start_id = id;
-	++id;
-	while((id < s.length()) && (c > 0)) {
-		if(s[id] == '(') {
-			++c;
-		} else if(s[id] == ')') {
-			--c;
-		}
-		++id;
-	}
-	if(c == 0) {
-		return id - 1;
-	} else {
-		throwError("Mismatched parentheses: ", start_id);
-		return 0;
-	}
-}
-
-Functions::const_iterator ExpressionParser::findItem(const std::string &s, size_t id, const Functions &coll,
+Functions::const_iterator ExpressionParser::findItem(size_t id, const Functions &coll,
                                                      Function::Type type)
 {
 	Functions::const_iterator res = coll.end();
 	for(auto i = coll.begin(); i != coll.end(); ++i) {
-		if((s.length() - id >= i->name.length())
-		   && (s.substr(id, i->name.length()) == i->name)
+		if((str.length() - id >= i->name.length())
+		   && (str.substr(id, i->name.length()) == i->name)
 		   && ((res == coll.end()) || (res->name.length() < i->name.length()))
 		   && ((type == Function::Type::NONE) || (type == i->type))) {
 			res = i;
@@ -312,41 +294,41 @@ bool ExpressionParser::isVarBeginning(char c)
 	return isalpha(c) || isdigit(c) || (c == '_');
 }
 
-bool ExpressionParser::isOperator(const std::string &s, size_t id)
+bool ExpressionParser::isOperator(size_t id)
 {
-	return findItem(s, id, settings.operators) != settings.operators.end();
+	return findItem(id, settings.operators) != settings.operators.end();
 }
 
-bool ExpressionParser::isFunction(const std::string &s, size_t id)
+bool ExpressionParser::isFunction(size_t id)
 {
 	// Function should be of the following form:
 	// TODO: fix errors in regexp:
 	// "^[[:alpha:]][[:alnum:]]*[[:space:]]*("
 	size_t start = id;
-	while((id < s.length()) && (isalpha(s[id]) || (isdigit(s[id])))) ++id;
-	if((id < s.length()) && (id > start)) {
-		while((id < s.length()) && isWhitespace(s[id])) ++id;
-		return (id < s.length()) && (s[id] == '(');
+	while((id < str.length()) && (isalpha(str[id]) || (isdigit(str[id])))) ++id;
+	if((id < str.length()) && (id > start)) {
+		while((id < str.length()) && isWhitespace(str[id])) ++id;
+		return (id < str.length()) && (str[id] == '(');
 	}
 	return false;
 }
 
-bool ExpressionParser::isConstant(const std::string &s, size_t id)
+bool ExpressionParser::isConstant(size_t id)
 {
-	return isdigit(s[id]) || ((s[id] == '-') && (id + 1 < s.length()) && isdigit(s[id + 1]));
+	return isdigit(str[id]) || ((str[id] == '-') && (id + 1 < str.length()) && isdigit(str[id + 1]));
 }
 
-int ExpressionParser::seekVar(const std::string &s, size_t id)
+int ExpressionParser::seekVar(size_t id)
 {
-	while((id < s.length()) && (isalpha(s[id]) || isdigit(s[id]) || (s[id] == '_'))) ++id;
+	while((id < str.length()) && (isalpha(str[id]) || isdigit(str[id]) || (str[id] == '_'))) ++id;
 	return id;
 }
 
-int ExpressionParser::seekNumber(const std::string &s, size_t id)
+int ExpressionParser::seekNumber(size_t id)
 {
 	bool found_dot = false;
-	while((id < s.length()) && ((isdigit(s[id]) || (s[id] == '.')))) {
-		if(s[id] == '.') {
+	while((id < str.length()) && ((isdigit(str[id]) || (str[id] == '.')))) {
+		if(str[id] == '.') {
 			if(found_dot) {
 				throwError("Found second dot in a real number: ", id);
 			}
@@ -355,4 +337,9 @@ int ExpressionParser::seekNumber(const std::string &s, size_t id)
 		++id;
 	}
 	return id;
+}
+
+void ExpressionParser::skipWhitespaces()
+{
+	while((id < str.length()) && isWhitespace(id)) ++id;
 }

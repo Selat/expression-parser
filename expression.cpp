@@ -58,8 +58,8 @@ Expression::Expression(const std::string &s) :
 	m_root(nullptr)
 {
 	ExpressionParserSettings set(m_whitespaces, m_operators, m_functions, m_varnames);
-	ExpressionParser p(set);
-	m_root = p.parse(s);
+	ExpressionParser p(set, s);
+	m_root = p.parse();
 	if(m_root) {
 		cout << "You entered: " << endl;
 		m_root->print();
@@ -184,4 +184,10 @@ void Expression::addFunction(const Functions::const_iterator &f, const Expressio
 void Expression::print()
 {
 	m_root->print();
+}
+
+
+double Expression::eval()
+{
+	return m_root->eval(m_variables);
 }
