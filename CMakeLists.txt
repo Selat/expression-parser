@@ -20,6 +20,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(SOURCES
   expression.cpp
   expression_parser.cpp
+  cell.cpp
   main.cpp
   )
 
