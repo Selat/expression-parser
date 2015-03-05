@@ -9,7 +9,7 @@ using namespace std;
 void testSpeed()
 {
 	string s;
-	int n = 3000;
+	int n = 50000;
 	for(int i=  0; i < n; ++i) {
 		s += "(";
 	}
@@ -23,7 +23,10 @@ void testSpeed()
 int main()
 {
 	try {
-		testSpeed();
+//		testSpeed();
+		string s;
+		getline(cin, s);
+		Expression e1(s);
 	} catch(std::exception &e) {
 		cout << e.what() << endl;
 	}

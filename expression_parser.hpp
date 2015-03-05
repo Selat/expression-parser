@@ -8,6 +8,8 @@
 #include <list>
 #include <cassert>
 #include <exception>
+#include <regex>
+#include <stack>
 
 #include <iostream>
 
@@ -87,7 +89,9 @@ struct ExpressionParserSettings
 public:
 	ExpressionParserSettings(const std::string &_whitespaces, const Functions &_operators, const Functions &_functions,
 	                         std::vector <std::string> &_variables) :
-		whitespaces(_whitespaces), operators(_operators), functions(_functions), variables(_variables)
+		whitespaces(_whitespaces), operators(_operators), functions(_functions), variables(_variables),
+		regex_whitespace("^[[:space:]]+"), regex_constant("^[[:digit:]]+"), regex_parenthesis_begin("^\\("),
+		regex_parenthesis_end("^\\)"), regex_func_args_separator("^,")
 	{
 	}
 	ExpressionParserSettings(const ExpressionParserSettings &s) :
@@ -98,27 +102,46 @@ public:
 	const Functions &operators;
 	const Functions &functions;
 	std::vector <std::string> &variables;
+
+	std::regex regex_whitespace;
+	std::regex regex_constant;
+	std::regex regex_parenthesis_begin;
+	std::regex regex_parenthesis_end;
+	std::regex regex_variable;
+	std::regex regex_function_begin;
+	std::regex regex_function_end;
+	std::regex regex_func_args_separator;
 };
 
 class ExpressionParser
 {
 public:
+	enum LexemeType {FUNCTION, PARENTHESIS, OPERATOR, ARGUMENT, UNKNOWN};
+	struct Lexeme
+	{
+		Lexeme(LexemeType type_, size_t begin_id_, size_t cur_id_) :
+			type(type_), begin_id(begin_id_), cur_id(cur_id_)
+		{
+		}
+		LexemeType type;
+		size_t begin_id, cur_id;
+	};
+
 	ExpressionParser(ExpressionParserSettings &s, const std::string &_str);
 	Cell* parse();
-	Cell* _parse(size_t &id);
+	Cell* _parse(size_t id);
 	void parseNextToken();
-	void parseNumber();
+	void parseConstant(size_t end_id);
+	void parseParenthesisBegin(size_t end_id);
+	void parseParenthesisEnd(size_t end_id);
 	void parseVariable();
-	void parseParenthesis();
-	void parseOperator();
+	void parseOperatorBegin();
 	void parseFunction();
 
 	void throwError(const std::string &msg, size_t id) const;
 
 	Functions::const_iterator findItem(size_t id, const Functions &coll,
 									   Function::Type type = Function::Type::NONE);
-	bool isWhitespace(char c);
-	bool isParenthesis(char c);
 	bool isVarBeginning(char c);
 
 	bool isOperator(size_t id);
@@ -128,19 +151,22 @@ public:
 
 	int seekNumber(size_t id);
 	int seekVar(size_t id);
-	void skipWhitespaces();
 protected:
+	// Returns length of match (zero in case there is no match)
+	size_t matchRegex(const std::regex &e);
+
 	ExpressionParserSettings &settings;
 
-	size_t id;
-	Cell *root;
-	Cell *curcell;
 	bool is_prev_num;
-	std::vector <Cell*> parents;
+	std::list <std::vector <Cell*> > parents;
+	std::stack <Cell*> cells;
+	Cell *curcell;
+
+	// First element - id from which parsing started, second - current id.
+	std::stack <Lexeme> lexems;
 
 	// For displaying errors
 	const std::string &str;
-	int last_op_id;
 };
 
 class ExpressionParserException : public std::exception
