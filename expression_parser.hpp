@@ -146,11 +146,6 @@ public:
 
 	bool isOperator(size_t id);
 	bool isFunction(size_t id);
-
-	bool isConstant(size_t id);
-
-	int seekNumber(size_t id);
-	int seekVar(size_t id);
 protected:
 	// Returns length of match (zero in case there is no match)
 	size_t matchRegex(const std::regex &e);
@@ -158,9 +153,8 @@ protected:
 	ExpressionParserSettings &settings;
 
 	bool is_prev_num;
-	std::list <std::vector <Cell*> > parents;
+	std::stack <std::vector <Cell*> > parents;
 	std::stack <Cell*> cells;
-	Cell *curcell;
 
 	// First element - id from which parsing started, second - current id.
 	std::stack <Lexeme> lexems;

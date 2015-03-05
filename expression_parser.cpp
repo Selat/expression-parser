@@ -28,8 +28,8 @@ Cell* ExpressionParser::parse()
 Cell* ExpressionParser::_parse(size_t tid)
 {
 	lexems.push(Lexeme(LexemeType::UNKNOWN, tid, tid));
-	parents.push_front(std::vector <Cell*>());
-	curcell = new Cell();
+	parents.push(std::vector <Cell*>());
+	cells.push(new Cell());
 	is_prev_num = false;
 	while(lexems.top().cur_id < str.length()) {
 		parseNextToken();
@@ -43,10 +43,10 @@ Cell* ExpressionParser::_parse(size_t tid)
 	// if(curcell->type == Cell::Type::NONE) {
 	// 	throwError("Right argument for operator not found: ", last_op_id);
 	// }
-	if(parents.begin()->empty()) {
-		return curcell;
+	if(parents.top().empty()) {
+		return cells.top();
 	} else {
-		return (*parents.begin())[0];
+		return parents.top()[0];
 	}
 }
 
@@ -58,11 +58,11 @@ void ExpressionParser::parseNextToken()
 		lexems.top().cur_id += len;
 	} else if((len = matchRegex(settings.regex_constant))) {
 		parseConstant(lexems.top().cur_id + len);
-	// } else if((len = matchRegex(settings.regex_parenthesis_begin))) {
-	// 	parseParenthesisBegin(lexems.top().cur_id + len);
-	// } else if((lexems.top().type == LexemeType::PARENTHESIS)
-	//           && (len = matchRegex(settings.regex_parenthesis_end))) {
-	// 	parseParenthesisEnd(lexems.top().cur_id + len);
+	} else if((len = matchRegex(settings.regex_parenthesis_begin))) {
+		parseParenthesisBegin(lexems.top().cur_id + len);
+	} else if((lexems.top().type == LexemeType::PARENTHESIS)
+	          && (len = matchRegex(settings.regex_parenthesis_end))) {
+		parseParenthesisEnd(lexems.top().cur_id + len);
 	} else if(isOperator(lexems.top().cur_id)) {
 		parseOperatorBegin();
 		cur_operator = true;
@@ -122,9 +122,12 @@ void ExpressionParser::parseConstant(size_t end_id)
 	std::stringstream ss(str.substr(start, end_id - start));
 	double val;
 	ss >> val;
-	curcell->type = Cell::Type::NUMBER;
-	curcell->val = val;
+	cells.top()->type = Cell::Type::NUMBER;
+	cells.top()->val = val;
 	is_prev_num = true;
+	if(lexems.top().type == LexemeType::OPERATOR) {
+		lexems.pop();
+	}
 	lexems.top().cur_id = end_id;
 }
 
@@ -133,27 +136,33 @@ void ExpressionParser::parseParenthesisBegin(size_t end_id)
 	if(is_prev_num) {
 		throwError("Expected operator between two values: ", lexems.top().cur_id);
 	}
-	if(!parents.begin()->empty()) {
-		cells.push(new Cell());
-	}
+	Cell *cell = cells.top();
+	cells.push(cell);
+	parents.push(std::vector <Cell*>());
 	lexems.push(Lexeme(LexemeType::PARENTHESIS, lexems.top().cur_id, end_id));
-	parents.push_front(std::vector <Cell*>());
 }
 
 void ExpressionParser::parseParenthesisEnd(size_t end_id)
 {
-	Cell *tcell = cells.top();
-	if(parents.begin()->empty()) {
-		tcell = cells.top();
-		cells.pop();
+	Cell *cell = nullptr;
+	if(parents.top().empty()) {
+		cell = cells.top();
 	} else {
-		tcell = (*parents.begin())[0];
+		cell = parents.top()[0];
 	}
-	parents.pop_front();
-	(*parents.begin())[parents.begin()->size() - 1]->func.args[1] = tcell;
+	cells.pop();
+	parents.pop();
+	if(!parents.top().empty()) {
+		size_t args_num = parents.top()[parents.top().size() - 1]->func.args.size();
+		parents.top()[parents.top().size() - 1]->func.args[args_num - 1] = cell;
+	}
+	cells.top() = cell;
 
 	// Move id forward
 	lexems.pop();
+	if(lexems.top().type == LexemeType::OPERATOR) {
+		lexems.pop();
+	}
 	lexems.top().cur_id = end_id;
 	is_prev_num = true;
 }
@@ -162,15 +171,13 @@ void ExpressionParser::parseOperatorBegin()
 {
 	Functions::const_iterator f;
 	size_t id = lexems.top().cur_id;
-	Cell *op_cell = nullptr;
+	Cell *op_cell = new Cell();
+	op_cell->type = Cell::Type::FUNCTION;
 	if(!is_prev_num) {
 		// We have to parse it as prefix operator because previous token is some operator.
 		f = findItem(id, settings.operators, Function::Type::PREFIX);
 		if(f != settings.operators.end()) {
-			Cell *arg_cell = curcell;
-			op_cell = new Cell();
-			op_cell->type = Cell::Type::FUNCTION;
-			op_cell->func.iter = f;
+			Cell *arg_cell = cells.top();
 			op_cell->func.args.push_back(arg_cell);
 			lexems.push(Lexeme(LexemeType::OPERATOR, id, id + f->name.length()));
 		} else {
@@ -180,51 +187,49 @@ void ExpressionParser::parseOperatorBegin()
 		// We have to parse it as infix/postfix operator because previous token is some value.
 		// First argument for these operators is already stored for us in curcell, so we don't have to do anything.
 		// Check next token ("value" - for infix operator, "operator" - for postfix operator) to choose right operator.
-		op_cell = new Cell();
-		op_cell->type = Cell::Type::FUNCTION;
 		if((f = findItem(id, settings.operators, Function::Type::INFIX)) != settings.operators.end()) {
-			Cell *arg1_cell = curcell;
+			Cell *arg1_cell = cells.top();
 			Cell *arg2_cell = new Cell();
 			op_cell->func.args.push_back(arg1_cell);
 			op_cell->func.args.push_back(arg2_cell);
-			curcell = arg2_cell;
+			cells.top() = arg2_cell;
 			is_prev_num = false;
 		} else if((f = findItem(id, settings.operators, Function::Type::POSTFIX)) != settings.operators.end()) {
-			Cell *arg_cell = curcell;
+			Cell *arg_cell = cells.top();
 			op_cell->func.args.push_back(arg_cell);
 			is_prev_num = true;
 		} else {
 			throwError("Expected postifx or prefix operator ", id);
 		}
-		op_cell->func.iter = f;
 		// Move id forward
 		lexems.top().cur_id += f->name.length();
 	}
-	if(!parents.begin()->empty()) {
-		int id = parents.begin()->size() - 1;
+	op_cell->func.iter = f;
+	if(!parents.top().empty()) {
+		int id = parents.top().size() - 1;
 		Cell *last_par = nullptr;
-		while((id >= 0) && (f->precedence < (*parents.begin())[id]->func.iter->precedence)) {
-			last_par = (*parents.begin())[id];
-			parents.begin()->pop_back();
+		while((id >= 0) && (f->precedence < parents.top()[id]->func.iter->precedence)) {
+			last_par = parents.top()[id];
+			parents.top().pop_back();
 			--id;
 		}
 		if(id >= 0) {
-			size_t args_num = (*parents.begin())[id]->func.args.size();
-			(*parents.begin())[id]->func.args[args_num - 1] = op_cell;
+			size_t args_num = parents.top()[id]->func.args.size();
+			parents.top()[id]->func.args[args_num - 1] = op_cell;
 			if(last_par != nullptr) {
 				op_cell->func.args[0] = last_par;
 			}
-			parents.begin()->push_back(op_cell);
+			parents.top().push_back(op_cell);
 		} else {
 			op_cell->func.args[0] = last_par;
 			Cell *cell = op_cell;
-			while(cell != curcell) {
-				parents.begin()->push_back(cell);
+			while(cell != cells.top()) {
+				parents.top().push_back(cell);
 				cell = cell->func.args[cell->func.args.size() - 1];
 			}
 		}
 	} else {
-		parents.begin()->push_back(op_cell);
+		parents.top().push_back(op_cell);
 	}
 }
 
@@ -310,32 +315,6 @@ bool ExpressionParser::isFunction(size_t id)
 		return (id < str.length()) && (str[id] == '(');
 	}
 	return false;
-}
-
-bool ExpressionParser::isConstant(size_t id)
-{
-	return isdigit(str[id]) || ((str[id] == '-') && (id + 1 < str.length()) && isdigit(str[id + 1]));
-}
-
-int ExpressionParser::seekVar(size_t id)
-{
-	while((id < str.length()) && (isalpha(str[id]) || isdigit(str[id]) || (str[id] == '_'))) ++id;
-	return id;
-}
-
-int ExpressionParser::seekNumber(size_t id)
-{
-	bool found_dot = false;
-	while((id < str.length()) && ((isdigit(str[id]) || (str[id] == '.')))) {
-		if(str[id] == '.') {
-			if(found_dot) {
-				throwError("Found second dot in a real number: ", id);
-			}
-			found_dot = true;
-		}
-		++id;
-	}
-	return id;
 }
 
 size_t ExpressionParser::matchRegex(const std::regex &e)
