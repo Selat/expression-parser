@@ -15,7 +15,7 @@ message(STATUS "${PROJECT_NAME} ${${PROJECT_NAME}_VERSION}")
 set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fno-inline")
 
 set(SOURCES
   expression.cpp
