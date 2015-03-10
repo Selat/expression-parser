@@ -66,6 +66,11 @@ void ExpressionParser::parseNextToken()
 	} else if(isOperator(lexems.top().cur_id)) {
 		parseOperatorBegin();
 		cur_operator = true;
+	} else if((len = matchRegex(settings.regex_function_begin))) {
+		parseFunctionBegin(lexems.top().cur_id, lexems.top().cur_id + len);
+	} else if((lexems.top().type == LexemeType::FUNCTION)
+	          && (len = matchRegex(settings.regex_function_end))) {
+		parseFunctionEnd(lexems.top().cur_id + len);
 	// } else if((len = matchRegex(settings.regex_func_args_separator))) {
 	// 	size_t id = lexems.top().cur_id + len;
 	// 	lexems.pop();
@@ -231,6 +236,41 @@ void ExpressionParser::parseOperatorBegin()
 	} else {
 		parents.top().push_back(op_cell);
 	}
+}
+
+void ExpressionParser::parseFunctionBegin(size_t id, size_t end_id)
+{
+	if(is_prev_num) {
+		throwError("Expected operator: ", id);
+	}
+	auto f = findItem(id, settings.functions);
+	if(f == settings.functions.end()) {
+		throwError("Undefined function: ", id);
+	}
+	Cell *cell = cells.top();
+	Cell *arg_cell = new Cell();
+	cell->type = Cell::Type::FUNCTION;
+	cell->func.args.push_back(arg_cell);
+	cell->func.iter = f;
+	cells.push(arg_cell);
+	std::vector <Cell*> tv;
+	tv.push_back(cell);
+	parents.push(tv);
+	lexems.push(Lexeme(LexemeType::FUNCTION, id, end_id));
+}
+
+void ExpressionParser::parseFunctionArg(size_t id)
+{
+}
+
+void ExpressionParser::parseFunctionEnd(size_t id)
+{
+	// Set current cell to the funciton cell
+	cells.pop();
+	cells.top() = parents.top()[0];
+	parents.pop();
+	lexems.pop();
+	lexems.top().cur_id = id;
 }
 
 void ExpressionParser::parseFunction()

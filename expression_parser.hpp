@@ -91,7 +91,8 @@ public:
 	                         std::vector <std::string> &_variables) :
 		whitespaces(_whitespaces), operators(_operators), functions(_functions), variables(_variables),
 		regex_whitespace("^[[:space:]]+"), regex_constant("^[[:digit:]]+"), regex_parenthesis_begin("^\\("),
-		regex_parenthesis_end("^\\)"), regex_func_args_separator("^,")
+		regex_parenthesis_end("^\\)"), regex_function_begin("^[[:alpha:]][[:alnum:]]*[[:space:]]*\\("), regex_function_end("^\\)"),
+		regex_func_args_separator("^,")
 	{
 	}
 	ExpressionParserSettings(const ExpressionParserSettings &s) :
@@ -136,6 +137,9 @@ public:
 	void parseParenthesisEnd(size_t end_id);
 	void parseVariable();
 	void parseOperatorBegin();
+	void parseFunctionBegin(size_t id, size_t end_id);
+	void parseFunctionArg(size_t id);
+	void parseFunctionEnd(size_t id);
 	void parseFunction();
 
 	void throwError(const std::string &msg, size_t id) const;
