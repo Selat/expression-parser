@@ -71,7 +71,7 @@ struct Cell
 	double eval(const std::map <std::string, double> &vars);
 	bool isSubExpression(std::vector <Cell*> &curcell, bool &subtree_match) const;
 
-	enum Type {FUNCTION, NUMBER, VARIABLE, NONE} type;
+	enum Type {FUNCTION, CONSTANT, VARIABLE, NONE} type;
 	struct
 	{
 		Functions::const_iterator iter;
@@ -148,7 +148,6 @@ public:
 	bool isVarBeginning(char c);
 
 	bool isOperator(size_t id);
-	bool isFunction(size_t id);
 protected:
 	// Returns length of match (zero in case there is no match)
 	size_t matchRegex(const std::regex &e);

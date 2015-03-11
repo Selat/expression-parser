@@ -53,7 +53,6 @@ Cell* ExpressionParser::_parse(size_t tid)
 void ExpressionParser::parseNextToken()
 {
 	size_t len = 0;
-	bool cur_operator = false;
 	if((len = matchRegex(settings.regex_whitespace))) {
 		lexems.top().cur_id += len;
 	} else if((len = matchRegex(settings.regex_constant))) {
@@ -65,7 +64,6 @@ void ExpressionParser::parseNextToken()
 		parseParenthesisEnd(lexems.top().cur_id + len);
 	} else if(isOperator(lexems.top().cur_id)) {
 		parseOperatorBegin();
-		cur_operator = true;
 	} else if((len = matchRegex(settings.regex_function_begin))) {
 		parseFunctionBegin(lexems.top().cur_id, lexems.top().cur_id + len);
 	} else if((lexems.top().type == LexemeType::FUNCTION)
@@ -74,8 +72,6 @@ void ExpressionParser::parseNextToken()
 	} else if((lexems.top().type == LexemeType::FUNCTION)
 	          && (len = matchRegex(settings.regex_func_args_separator))) {
 		parseFunctionArg(lexems.top().cur_id + len);
-		// } else if(isFunction(id)) {
-		// 	parseFunction();
 		// } else if(isVarBeginning(str[id])) {
 		// 	parseVariable();
 	} else {
@@ -116,7 +112,7 @@ void ExpressionParser::parseConstant(size_t end_id)
 	std::stringstream ss(str.substr(start, end_id - start));
 	double val;
 	ss >> val;
-	cells.top()->type = Cell::Type::NUMBER;
+	cells.top()->type = Cell::Type::CONSTANT;
 	cells.top()->val = val;
 	is_prev_num = true;
 	if(lexems.top().type == LexemeType::OPERATOR) {
@@ -309,20 +305,6 @@ bool ExpressionParser::isVarBeginning(char c)
 bool ExpressionParser::isOperator(size_t id)
 {
 	return findItem(id, settings.operators) != settings.operators.end();
-}
-
-bool ExpressionParser::isFunction(size_t id)
-{
-	// Function should be of the following form:
-	// TODO: fix errors in regexp:
-	// "^[[:alpha:]][[:alnum:]]*[[:space:]]*("
-	size_t start = id;
-	while((id < str.length()) && (isalpha(str[id]) || (isdigit(str[id])))) ++id;
-	if((id < str.length()) && (id > start)) {
-//		while((id < str.length()) && isWhitespace(str[id])) ++id;
-		return (id < str.length()) && (str[id] == '(');
-	}
-	return false;
 }
 
 size_t ExpressionParser::matchRegex(const std::regex &e)
