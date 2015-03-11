@@ -30,25 +30,25 @@ public:
 
 	bool isSubExpression(const Expression &e) const;
 
-	std::map <std::string, double>& variables();
-	double getVar(size_t id) const;
-	double getVar(const std::string &name) const;
-	void setVar(size_t id, double val);
-	void setVar(const std::string &name, double val);
+	std::map <std::string, int>& variables();
+	int getVar(size_t id) const;
+	int getVar(const std::string &name) const;
+	void setVar(size_t id, int val);
+	void setVar(const std::string &name, int val);
 
-	double eval();
+	int eval();
 
 	void print();
 protected:
-	Functions::const_iterator findFunction(const std::string &name, Function::Type type);
-	void addFunction(const Functions::const_iterator &f, const Expression &e);
+	Functions<int>::const_iterator findFunction(const std::string &name, Function<int>::Type type);
+	void addFunction(const Functions<int>::const_iterator &f, const Expression &e);
 
-	Cell *m_root;
-	std::map <std::string, double> m_variables;
+	Cell<int> *m_root;
+	std::map <std::string, int> m_variables;
 	std::vector <std::string> m_varnames;
 	static const std::string m_whitespaces;
-	static const Functions m_operators;
-	static const Functions m_functions;
+	static const Functions<int> m_operators;
+	static const Functions<int> m_functions;
 };
 
 class ExpressionException : public std::exception

@@ -19,8 +19,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fno-inline")
 
 set(SOURCES
   expression.cpp
-  expression_parser.cpp
-  cell.cpp
   main.cpp
   )
 
