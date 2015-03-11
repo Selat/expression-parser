@@ -15,7 +15,7 @@
 #include <iostream>
 
 #include "expression_base.hpp"
-#include "cell.hpp"
+#include "expression_cell.hpp"
 
 template <typename T>
 class ExpressionParser
@@ -34,7 +34,7 @@ public:
 
 	ExpressionParser(ExpressionParserSettings <T> &s, const std::string &_str);
 	Cell <T>* parse();
-	Cell <T>* _parse(size_t id);
+protected:
 	void parseNextToken();
 	void parseConstant(size_t end_id);
 	void parseParenthesisBegin(size_t end_id);
@@ -51,17 +51,21 @@ public:
 	                                               typename Function<T>::Type type = Function<T>::Type::NONE);
 
 	bool isOperator(size_t id);
-protected:
+
+
 	// Returns length of match (zero in case there is no match)
 	size_t matchRegex(const std::regex &e);
 
 	ExpressionParserSettings <T> &settings;
 
 	bool is_prev_num;
+	// Each function and parenthesis pushes it's own object vector to the stack. This is mainly used for resolvig operators ordering.
 	std::stack <std::vector <Cell <T>*> > parents;
+	// Top of this stack is always equals current cell of the current environment. Each function and parenthesis
+	// creates it's own environment.
 	std::stack <Cell <T>*> cells;
 
-	// First element - id from which parsing started, second - current id.
+	// Each function and parenthesis pushes it's own object of class Lexeme. This is mainly used for displaying errors.
 	std::stack <Lexeme> lexems;
 
 	// For displaying errors
@@ -85,15 +89,7 @@ Cell <T>* ExpressionParser<T>::parse()
 		return nullptr;
 	}
 	size_t id = 0;
-	Cell <T> *res = _parse(id);
-//	res->sort();
-	return res;
-}
-
-template <typename T>
-Cell <T>* ExpressionParser<T>::_parse(size_t tid)
-{
-	lexems.push(Lexeme(LexemeType::UNKNOWN, tid, tid));
+	lexems.push(Lexeme(LexemeType::UNKNOWN, id, id));
 	parents.push(std::vector <Cell <T>*>());
 	cells.push(new Cell <T>());
 	is_prev_num = false;
@@ -109,11 +105,14 @@ Cell <T>* ExpressionParser<T>::_parse(size_t tid)
 	// if(cells.top()->type == Cell<T>::Type::NONE) {
 	// 	throwError("Right argument for operator not found: ", last_op_id);
 	// }
+	Cell <T> *res = nullptr;
 	if(parents.top().empty()) {
-		return cells.top();
+		res = cells.top();
 	} else {
-		return parents.top()[0];
+		res = parents.top()[0];
 	}
+	// res->sort();
+	return res;
 }
 
 template <typename T>
@@ -220,7 +219,6 @@ void ExpressionParser<T>::parseParenthesisEnd(size_t end_id)
 	}
 	cells.top() = cell;
 
-	// Move id forward
 	lexems.pop();
 	if(lexems.top().type == LexemeType::OPERATOR) {
 		lexems.pop();
@@ -248,8 +246,7 @@ void ExpressionParser<T>::parseOperatorBegin()
 		}
 	} else {
 		// We have to parse it as infix/postfix operator because previous token is some value.
-		// First argument for these operators is already stored for us in curcell, so we don't have to do anything.
-		// Check next token ("value" - for infix operator, "operator" - for postfix operator) to choose right operator.
+		// First argument for these operators is already stored for us in cells.top(), so we don't have to do anything.
 		if((f = findItem(id, settings.operators, Function<T>::Type::INFIX)) != settings.operators.end()) {
 			Cell <T> *arg1_cell = cells.top();
 			Cell <T> *arg2_cell = new Cell <T>();

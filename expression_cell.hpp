@@ -1,6 +1,8 @@
 #ifndef CELL_H
 #define CELL_H
 
+#include "expression_base.hpp"
+
 #include <iostream>
 
 using std::cout;
