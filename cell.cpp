@@ -43,7 +43,7 @@ Cell& Cell::operator=(const Cell &c)
 		var.name = c.var.name;
 		break;
 	}
-	case Type::NUMBER:
+	case Type::CONSTANT:
 	{
 		val = c.val;
 		break;
@@ -63,9 +63,9 @@ bool Cell::operator<(const Cell &c) const
 		return (i1->name < i2->name) || ((i1->name == i2->name) && (i1->args_num < i2->args_num));
 	} else if((c.type == Type::VARIABLE) && (type == Type::VARIABLE)) {
 		return var.name < c.var.name;
-	} else if((c.type == Type::NUMBER) && (type == Type::NUMBER)) {
+	} else if((c.type == Type::CONSTANT) && (type == Type::CONSTANT)) {
 		return val < c.val;
-	} else if(((type == Type::VARIABLE) && (c.type == Type::NUMBER))
+	} else if(((type == Type::VARIABLE) && (c.type == Type::CONSTANT))
 	          || (type == Type::FUNCTION)) {
 		return true;
 	} else {
@@ -85,7 +85,7 @@ bool Cell::operator==(const Cell &c) const
 		return ok;
 	} else if((type == Type::VARIABLE) && (c.type == Type::VARIABLE)) {
 		return var.name == c.var.name;
-	} else if((type == Type::NUMBER) && (c.type == Type::NUMBER)) {
+	} else if((type == Type::CONSTANT) && (c.type == Type::CONSTANT)) {
 		return fabs(val - c.val) < EPS;
 	} else {
 		return false;
@@ -104,7 +104,7 @@ void Cell::print() const
 		cout << ")";
 	} else if(type == Type::VARIABLE) {
 		cout << var.name;
-	} else if(type == Type::NUMBER) {
+	} else if(type == Type::CONSTANT) {
 		cout << val;
 	}
 }
@@ -125,7 +125,7 @@ double Cell::eval(const std::map <std::string, double> &vars)
 		auto it = vars.find(var.name);
 		return it->second;
 	}
-	case Type::NUMBER:
+	case Type::CONSTANT:
 	{
 		return val;
 	}

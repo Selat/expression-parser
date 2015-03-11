@@ -91,7 +91,8 @@ public:
 	                         std::vector <std::string> &_variables) :
 		whitespaces(_whitespaces), operators(_operators), functions(_functions), variables(_variables),
 		regex_whitespace("^[[:space:]]+"), regex_constant("^[[:digit:]]+"), regex_parenthesis_begin("^\\("),
-		regex_parenthesis_end("^\\)"), regex_function_begin("^[[:alpha:]][[:alnum:]]*[[:space:]]*\\("), regex_function_end("^\\)"),
+		regex_parenthesis_end("^\\)"), regex_variable("^[[:alpha:]][[:alnum:]]*"),
+		regex_function_begin("^[[:alpha:]][[:alnum:]]*[[:space:]]*\\("), regex_function_end("^\\)"),
 		regex_func_args_separator("^,")
 	{
 	}
@@ -135,7 +136,7 @@ public:
 	void parseConstant(size_t end_id);
 	void parseParenthesisBegin(size_t end_id);
 	void parseParenthesisEnd(size_t end_id);
-	void parseVariable();
+	void parseVariable(size_t end_id);
 	void parseOperatorBegin();
 	void parseFunctionBegin(size_t id, size_t end_id);
 	void parseFunctionArg(size_t id);

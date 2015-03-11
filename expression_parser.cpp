@@ -40,9 +40,9 @@ Cell* ExpressionParser::_parse(size_t tid)
 	if(lexems.top().type == LexemeType::FUNCTION) {
 		throwError("Unfinished function call: ", lexems.top().begin_id);
 	}
-	// if(curcell->type == Cell::Type::NONE) {
-	// 	throwError("Right argument for operator not found: ", last_op_id);
-	// }
+	if(cells.top()->type == Cell::Type::NONE) {
+		throwError("Right argument for operator not found: ", last_op_id);
+	}
 	if(parents.top().empty()) {
 		return cells.top();
 	} else {
@@ -72,35 +72,36 @@ void ExpressionParser::parseNextToken()
 	} else if((lexems.top().type == LexemeType::FUNCTION)
 	          && (len = matchRegex(settings.regex_func_args_separator))) {
 		parseFunctionArg(lexems.top().cur_id + len);
-		// } else if(isVarBeginning(str[id])) {
-		// 	parseVariable();
+	} else if((len = matchRegex(settings.regex_variable))) {
+		parseVariable(lexems.top().cur_id + len);
 	} else {
 		throwError("Unrecognised token: ", lexems.top().cur_id);
 	}
 }
 
-void ExpressionParser::parseVariable()
+void ExpressionParser::parseVariable(size_t end_id)
 {
-	// if(is_prev_num) {
-	// 	throwError("Expected operator between two values: ", id);
-	// }
-	// int start = id;
-	// id = seekVar(id);
-	// std::string varname = str.substr(start, id - start);
-	// curcell->type = Cell::Type::VARIABLE;
-	// curcell->var.name = varname;
-	// is_prev_num = true;
+	if(is_prev_num) {
+		throwError("Expected operator between two values: ", lexems.top().cur_id);
+	}
+	int start = lexems.top().cur_id;
+	std::string varname = str.substr(start, end_id - start);
+	cells.top()->type = Cell::Type::VARIABLE;
+	cells.top()->var.name = varname;
+	is_prev_num = true;
 
-	// bool exist = false;
-	// for(const auto &i : settings.variables) {
-	// 	if(i == varname) {
-	// 		exist = true;
-	// 		break;
-	// 	}
-	// }
-	// if(!exist) {
-	// 	settings.variables.push_back(varname);
-	// }
+	lexems.top().cur_id = end_id;
+
+	bool exist = false;
+	for(const auto &i : settings.variables) {
+		if(i == varname) {
+			exist = true;
+			break;
+		}
+	}
+	if(!exist) {
+		settings.variables.push_back(varname);
+	}
 }
 
 void ExpressionParser::parseConstant(size_t end_id)
