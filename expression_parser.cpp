@@ -71,17 +71,9 @@ void ExpressionParser::parseNextToken()
 	} else if((lexems.top().type == LexemeType::FUNCTION)
 	          && (len = matchRegex(settings.regex_function_end))) {
 		parseFunctionEnd(lexems.top().cur_id + len);
-	// } else if((len = matchRegex(settings.regex_func_args_separator))) {
-	// 	size_t id = lexems.top().cur_id + len;
-	// 	lexems.pop();
-	// 	lexems.top().cur_id = id;
-	// } else if((len = matchRegex(settings.regex_function_end))) {
-	// 	size_t id = lexems.top().cur_id + len;
-	// 	lexems.pop();
-	// 	lexems.top().cur_id = id;
-		// } else if(isOperator(id)) {
-		// 	last_op_id = id;
-		// 	parseOperator();
+	} else if((lexems.top().type == LexemeType::FUNCTION)
+	          && (len = matchRegex(settings.regex_func_args_separator))) {
+		parseFunctionArg(lexems.top().cur_id + len);
 		// } else if(isFunction(id)) {
 		// 	parseFunction();
 		// } else if(isVarBeginning(str[id])) {
@@ -89,9 +81,6 @@ void ExpressionParser::parseNextToken()
 	} else {
 		throwError("Unrecognised token: ", lexems.top().cur_id);
 	}
-	// if((lexems.top().type == LexemeType::OPERATOR) && !cur_operator) {
-	// 	parseOperatorEnd();
-	// }
 }
 
 void ExpressionParser::parseVariable()
@@ -261,6 +250,17 @@ void ExpressionParser::parseFunctionBegin(size_t id, size_t end_id)
 
 void ExpressionParser::parseFunctionArg(size_t id)
 {
+	if(cells.top()->type == Cell::Type::NONE) {
+		throwError("Unfinished expression: ", lexems.top().cur_id);
+	}
+	if(parents.top()[0]->func.iter->args_num == parents.top()[0]->func.args.size()) {
+		throwError("Excess argument: ", id);
+	}
+	Cell *arg_cell = new Cell();
+	parents.top()[0]->func.args.push_back(arg_cell);
+	cells.top() = arg_cell;
+	lexems.top().cur_id = id;
+	is_prev_num = false;
 }
 
 void ExpressionParser::parseFunctionEnd(size_t id)
@@ -271,38 +271,6 @@ void ExpressionParser::parseFunctionEnd(size_t id)
 	parents.pop();
 	lexems.pop();
 	lexems.top().cur_id = id;
-}
-
-void ExpressionParser::parseFunction()
-{
-	// auto f = findItem(id, settings.functions);
-	// if(f == settings.functions.end()) {
-	// 	throwError("Undefined function: ", id);
-	// }
-	// id += f->name.length();
-	// size_t func_name_id = id;
-	// //skipWhitespaces();
-
-	// if((id >= str.length()) || (str[id] != '(')) {
-	// 	throwError("Expected list of parameters after the name of the function: ", id);
-	// }
-	// curcell->type = Cell::Type::FUNCTION;
-	// curcell->func.iter = f;
-	// size_t prev_id = id + 1;
-	// while(prev_id < str.length()) {
-	// 	ExpressionParser p(settings, str);
-	// 	curcell->func.args.push_back(p._parse(prev_id));
-	// 	if(str[prev_id] == ')') {
-	// 		++prev_id;
-	// 		break;
-	// 	}
-	// 	++prev_id;
-	// }
-	// if(curcell->func.args.size() != f->args_num) {
-	// 	throwError("Invalid number of arguments: ", func_name_id);
-	// }
-	// id = prev_id;
-	// is_prev_num = true;
 }
 
 void ExpressionParser::throwError(const std::string &msg, size_t id) const

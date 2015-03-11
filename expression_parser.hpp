@@ -140,7 +140,6 @@ public:
 	void parseFunctionBegin(size_t id, size_t end_id);
 	void parseFunctionArg(size_t id);
 	void parseFunctionEnd(size_t id);
-	void parseFunction();
 
 	void throwError(const std::string &msg, size_t id) const;
 
