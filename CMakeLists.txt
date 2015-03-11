@@ -4,7 +4,6 @@ project(expression-parser)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_BUILD_TYPE Debug)
-set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}")
 
 set(${PROJECT_NAME}_VERSION_MAJOR 0)
 set(${PROJECT_NAME}_VERSION_MINOR 0)
@@ -13,7 +12,7 @@ set(${PROJECT_NAME}_VERSION "${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_
 message(STATUS "${PROJECT_NAME} ${${PROJECT_NAME}_VERSION}")
 
 set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fno-inline")
 
