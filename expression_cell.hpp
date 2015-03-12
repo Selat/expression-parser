@@ -28,7 +28,7 @@ struct Cell
 	T eval(const std::map <std::string, T> &vars);
 	bool isSubExpression(std::vector <Cell*> &curcell, bool &subtree_match) const;
 
-	enum Type {FUNCTION, CONSTANT, VARIABLE, NONE} type;
+	enum class Type {FUNCTION, CONSTANT, VARIABLE, NONE} type;
 	struct
 	{
 		typename Functions<T>::const_iterator iter;

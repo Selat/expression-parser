@@ -21,7 +21,7 @@ template <typename T>
 class ExpressionParser
 {
 public:
-	enum LexemeType {FUNCTION, PARENTHESIS, OPERATOR, ARGUMENT, UNKNOWN};
+	enum class LexemeType {FUNCTION, PARENTHESIS, OPERATOR, ARGUMENT, UNKNOWN};
 	struct Lexeme
 	{
 		Lexeme(LexemeType type_, size_t begin_id_, size_t cur_id_) :

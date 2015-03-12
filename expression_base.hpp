@@ -16,7 +16,7 @@ using Vars = std::map <std::string, T>;
 template <typename T>
 struct Function
 {
-	enum Type {PREFIX, INFIX, POSTFIX, NONE};
+	enum class Type {PREFIX, INFIX, POSTFIX, NONE};
 	// Precedence is only for operators
 	// For prefix/postfix operators (these always have exactly one argument).
 	Function(const std::string &s, int p, const FuncLambda <T> &f, Type _type) :
