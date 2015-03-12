@@ -46,7 +46,6 @@ protected:
 	Cell<int> *m_root;
 	std::map <std::string, int> m_variables;
 	std::vector <std::string> m_varnames;
-	static const std::string m_whitespaces;
 	static const Functions<int> m_operators;
 	static const Functions<int> m_functions;
 };

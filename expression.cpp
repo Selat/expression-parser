@@ -22,7 +22,6 @@
 using std::cout;
 using std::endl;
 
-const std::string Expression::m_whitespaces = " \t\n";
 const Functions<int> Expression::m_operators = {
 	Function<int>("+", 10, [](const Args<int> &a){return a[0] + a[1];}, true),
 	Function<int>("-", 10, [](const Args<int> &a){return a[0] - a[1];}, false),
@@ -57,7 +56,7 @@ const Functions<int> Expression::m_functions = {
 Expression::Expression(const std::string &s) :
 	m_root(nullptr)
 {
-	ExpressionParserSettings <int> set(m_whitespaces, m_operators, m_functions, m_varnames);
+	ExpressionParserSettings <int> set(m_operators, m_functions, m_varnames);
 	ExpressionParser <int> p(set, s);
 	m_root = p.parse();
 	if(m_root) {
@@ -66,6 +65,12 @@ Expression::Expression(const std::string &s) :
 		cout << endl;
 		for(const auto &s : m_varnames) {
 			m_variables[s] = 0.0;
+		}
+
+		cout << "Expression: " << endl;
+		for(auto it = m_root->begin(); it != m_root->end(); ++it) {
+			it->print();
+			cout << ", ";
 		}
 	}
 }

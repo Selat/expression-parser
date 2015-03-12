@@ -53,9 +53,9 @@ template <typename T>
 struct ExpressionParserSettings
 {
 public:
-	ExpressionParserSettings(const std::string &_whitespaces, const Functions<T> &_operators, const Functions <T> &_functions,
+	ExpressionParserSettings(const Functions<T> &_operators, const Functions <T> &_functions,
 	                         std::vector <std::string> &_variables) :
-		whitespaces(_whitespaces), operators(_operators), functions(_functions), variables(_variables),
+		operators(_operators), functions(_functions), variables(_variables),
 		regex_whitespace("^[[:space:]]+"), regex_constant("^[[:digit:]]+"), regex_parenthesis_begin("^\\("),
 		regex_parenthesis_end("^\\)"), regex_variable("^[[:alpha:]][[:alnum:]]*"),
 		regex_function_begin("^[[:alpha:]][[:alnum:]]*[[:space:]]*\\("), regex_function_end("^\\)"),
@@ -63,10 +63,9 @@ public:
 	{
 	}
 	ExpressionParserSettings(const ExpressionParserSettings &s) :
-		whitespaces(s.whitespaces), operators(s.operators), functions(s.functions), variables(s.variables)
+		operators(s.operators), functions(s.functions), variables(s.variables)
 	{
 	}
-	const std::string &whitespaces;
 	const Functions <T> &operators;
 	const Functions <T> &functions;
 	std::vector <std::string> &variables;

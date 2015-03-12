@@ -3,6 +3,8 @@
 
 #include "expression_base.hpp"
 
+#include <stack>
+
 #include <iostream>
 
 using std::cout;
@@ -21,6 +23,7 @@ struct Cell
 	bool operator==(const Cell &c) const;
 
 	void print() const;
+	void printNonRecursive() const;
 	void sort();
 	T eval(const std::map <std::string, T> &vars);
 	bool isSubExpression(std::vector <Cell*> &curcell, bool &subtree_match) const;
@@ -36,6 +39,81 @@ struct Cell
 		std::string name;
 	} var;
 	T val;
+
+	class iterator
+	{
+	public:
+		iterator(const iterator &it) :
+			m_parents(it.m_parents),
+			m_arg_id(it.m_arg_id)
+		{
+		}
+		iterator& operator=(const iterator &it)
+		{
+			m_parents = it.m_parents;
+			m_arg_id = it.m_arg_id;
+			m_curcell = it.m_curcell;
+		}
+		iterator& operator++()
+		{
+			if(!m_parents.empty()) {
+				if((m_arg_id.top() + 1 < m_parents.top()->func.args.size())) {
+					++m_arg_id.top();
+					m_curcell = m_parents.top()->func.args[m_arg_id.top()];
+					while(m_curcell->type == Cell::Type::FUNCTION) {
+						m_parents.push(m_curcell);
+						m_arg_id.push(0);
+						m_curcell = m_curcell->func.args[0];
+					}
+				} else {
+					m_curcell = m_parents.top();
+					m_parents.pop();
+					m_arg_id.pop();
+				}
+			} else {
+				m_curcell = nullptr;
+			}
+			return *this;
+		}
+		bool operator!=(const iterator &it)
+		{
+			return m_curcell != it.m_curcell;
+		}
+		Cell& operator*()
+		{
+			return *m_curcell;
+		}
+		Cell* operator->()
+		{
+			return m_curcell;
+		}
+	private:
+		iterator(Cell *cell)
+		{
+			m_curcell = cell;
+			if(m_curcell != nullptr) {
+				while(m_curcell->type == Cell::Type::FUNCTION) {
+					m_parents.push(m_curcell);
+					m_arg_id.push(0);
+					m_curcell = m_curcell->func.args[0];
+				}
+			}
+		}
+		friend Cell;
+
+		std::stack <Cell <T>*> m_parents;
+		std::stack <int> m_arg_id;
+		Cell *m_curcell;
+	};
+
+	iterator begin()
+	{
+		return iterator(this);
+	}
+	iterator end()
+	{
+		return iterator(nullptr);
+	}
 };
 
 
@@ -145,6 +223,19 @@ void Cell<T>::print() const
 		cout << var.name;
 	} else if(type == Type::CONSTANT) {
 		cout << val;
+	}
+}
+
+template <typename T>
+void Cell<T>::printNonRecursive() const
+{
+	if(type == Type::FUNCTION) {
+		cout << "func: ";
+		cout << func.iter->name;
+	} else if(type == Type::VARIABLE) {
+		cout << "var: " << var.name;
+	} else if(type == Type::CONSTANT) {
+		cout << "const: " << val;
 	}
 }
 
