@@ -60,11 +60,7 @@ struct ExpressionParserSettings
 public:
 	ExpressionParserSettings(const Functions<T> &_operators, const Functions <T> &_functions,
 	                         std::vector <std::string> &_variables) :
-		operators(_operators), functions(_functions), variables(_variables),
-		regex_whitespace("^[[:space:]]+"), regex_constant("^[[:digit:]]+"), regex_parenthesis_begin("^\\("),
-		regex_parenthesis_end("^\\)"), regex_variable("^[[:alpha:]][[:alnum:]]*"),
-		regex_function_begin("^[[:alpha:]][[:alnum:]]*[[:space:]]*\\("), regex_function_end("^\\)"),
-		regex_func_args_separator("^,")
+		operators(_operators), functions(_functions), variables(_variables)
 	{
 	}
 	ExpressionParserSettings(const ExpressionParserSettings &s) :

@@ -59,6 +59,14 @@ Expression::Expression(const std::string &s) :
 	m_root(nullptr)
 {
 	ExpressionParserSettings <int> set(operators, functions, m_varnames);
+	set.regex_whitespace = std::regex("^[[:space:]]+");
+	set.regex_constant = std::regex("^[[:digit:]]+");
+	set.regex_parenthesis_begin = std::regex("^\\(");
+	set.regex_parenthesis_end = std::regex("^\\)");
+	set.regex_variable = std::regex("^[[:alpha:]][[:alnum:]]*");
+	set.regex_function_begin = std::regex("^[[:alpha:]][[:alnum:]]*[[:space:]]*\\(");
+	set.regex_function_end = std::regex("^\\)");
+	set.regex_func_args_separator = std::regex("^,");
 	ExpressionParser <int> p(set, s);
 	m_root = p.parse();
 	if(m_root) {
