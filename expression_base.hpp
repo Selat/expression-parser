@@ -1,6 +1,11 @@
 #ifndef EXPRESSION_BASE_H
 #define EXPRESSION_BASE_H
 
+#include <functional>
+#include <vector>
+#include <string>
+#include <cassert>
+
 template <typename T>
 struct Function;
 
@@ -84,8 +89,8 @@ public:
 class ExpressionParserException : public std::exception
 {
 public:
-	ExpressionParserException(const std::string &s) throw() : m_s(s) {}
-	virtual const char* what() const throw()
+	ExpressionParserException(const std::string &s) noexcept : m_s(s) {}
+	virtual const char* what() const noexcept override
 	{
 		return m_s.c_str();
 	}

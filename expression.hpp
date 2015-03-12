@@ -46,15 +46,13 @@ protected:
 	Cell<int> *m_root;
 	std::map <std::string, int> m_variables;
 	std::vector <std::string> m_varnames;
-	static const Functions<int> m_operators;
-	static const Functions<int> m_functions;
 };
 
 class ExpressionException : public std::exception
 {
 public:
-	ExpressionException(const std::string &s) throw() : m_s(s) {}
-	virtual const char* what() const throw()
+	ExpressionException(const std::string &s) noexcept : m_s(s) {}
+	virtual const char* what() const noexcept override
 	{
 		return m_s.c_str();
 	}

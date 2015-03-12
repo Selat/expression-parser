@@ -22,13 +22,14 @@
 using std::cout;
 using std::endl;
 
-const Functions<int> Expression::m_operators = {
+namespace {
+const Functions<int> operators = {
 	Function<int>("+", 10, [](const Args<int> &a){return a[0] + a[1];}, true),
 	Function<int>("-", 10, [](const Args<int> &a){return a[0] - a[1];}, false),
 	Function<int>("*", 20, [](const Args<int> &a){return a[0] * a[1];}, true),
 	Function<int>("/", 20, [](const Args<int> &a){return a[0] / a[1];}, false),
 	Function<int>("-", 40, [](const Args<int> &a){return -a[0];}, Function<int>::Type::PREFIX)};
-const Functions<int> Expression::m_functions = {
+const Functions<int> functions = {
 	Function<int>("abs", [](const Args<int> &a){return std::abs(a[0]);}),
 	Function<int>("ceil", [](const Args<int> &a){return ceil(a[0]);}),
 	Function<int>("floor", [](const Args<int> &a){return floor(a[0]);}),
@@ -52,11 +53,12 @@ const Functions<int> Expression::m_functions = {
 	Function<int>("asinh", [](const Args<int> &a){return asinh(a[0]);}),
 	Function<int>("atanh", [](const Args<int> &a){return atanh(a[0]);}),
 	Function<int>("actgh", [](const Args<int> &a){return atanh(1.0 /a[0]);})};
+}
 
 Expression::Expression(const std::string &s) :
 	m_root(nullptr)
 {
-	ExpressionParserSettings <int> set(m_operators, m_functions, m_varnames);
+	ExpressionParserSettings <int> set(operators, functions, m_varnames);
 	ExpressionParser <int> p(set, s);
 	m_root = p.parse();
 	if(m_root) {
@@ -97,7 +99,7 @@ Expression& Expression::operator=(const Expression &e)
 
 bool Expression::operator==(const Expression &e) const
 {
-	return (m_root == e.m_root) || (*m_root == *e.m_root);
+	return (m_root == e.m_root) || ((m_root != nullptr) && (e.m_root != nullptr) && (*m_root == *e.m_root));
 }
 
 bool Expression::operator!=(const Expression &e) const
@@ -164,9 +166,9 @@ void Expression::setVar(const std::string &name, int val)
 
 Functions<int>::const_iterator Expression::findFunction(const std::string &name, Function<int>::Type type)
 {
-	Functions<int>::const_iterator res = m_operators.end();
-	for(auto i = m_operators.begin(); i != m_operators.end(); ++i) {
-		if((type == i->type) && (name == i->name)) {
+	auto res = operators.end();
+	for(auto i = operators.begin(); i != operators.end(); ++i) {
+			if((type == i->type) && (name == i->name)) {
 			res = i;
 		}
 	}

@@ -1,18 +1,11 @@
 #ifndef EXPRESSION_PARSER_H
 #define EXPRESSION_PARSER_H
 
-#include <string>
-#include <vector>
 #include <map>
-#include <functional>
-#include <list>
-#include <cassert>
 #include <exception>
 #include <regex>
 #include <stack>
 #include <sstream>
-
-#include <iostream>
 
 #include "expression_base.hpp"
 #include "expression_cell.hpp"
@@ -71,9 +64,6 @@ protected:
 	// For displaying errors
 	const std::string &str;
 };
-
-using std::cout;
-using std::endl;
 
 template <typename T>
 ExpressionParser<T>::ExpressionParser(ExpressionParserSettings <T> &_settings,
@@ -360,7 +350,7 @@ template <typename T>
 typename Functions<T>::const_iterator ExpressionParser<T>::findItem(size_t id, const Functions<T> &coll,
                                                         typename Function<T>::Type type)
 {
-	typename Functions<T>::const_iterator res = coll.end();
+	auto res = coll.end();
 	for(auto i = coll.begin(); i != coll.end(); ++i) {
 		if((str.length() - id >= i->name.length())
 		   && (str.substr(id, i->name.length()) == i->name)

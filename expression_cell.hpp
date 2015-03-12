@@ -22,11 +22,12 @@ struct Cell
 	bool operator<(const Cell &c) const;
 	bool operator==(const Cell &c) const;
 
-	void print() const;
-	void printNonRecursive() const;
 	void sort();
 	T eval(const std::map <std::string, T> &vars);
 	bool isSubExpression(std::vector <Cell*> &curcell, bool &subtree_match) const;
+
+	void print() const;
+	void printNonRecursive() const;
 
 	enum class Type {FUNCTION, CONSTANT, VARIABLE, NONE} type;
 	struct
@@ -209,37 +210,6 @@ bool Cell<T>::operator==(const Cell &c) const
 }
 
 template <typename T>
-void Cell<T>::print() const
-{
-	if(type == Type::FUNCTION) {
-		cout << "(";
-		cout << func.iter->name;
-		for(const auto &i : func.args) {
-			cout << " ";
-			i->print();
-		}
-		cout << ")";
-	} else if(type == Type::VARIABLE) {
-		cout << var.name;
-	} else if(type == Type::CONSTANT) {
-		cout << val;
-	}
-}
-
-template <typename T>
-void Cell<T>::printNonRecursive() const
-{
-	if(type == Type::FUNCTION) {
-		cout << "func: ";
-		cout << func.iter->name;
-	} else if(type == Type::VARIABLE) {
-		cout << "var: " << var.name;
-	} else if(type == Type::CONSTANT) {
-		cout << "const: " << val;
-	}
-}
-
-template <typename T>
 T Cell<T>::eval(const std::map <std::string, T> &vars)
 {
 	switch(type) {
@@ -333,5 +303,37 @@ void Cell<T>::sort()
 		}
 	}
 }
+
+template <typename T>
+void Cell<T>::print() const
+{
+	if(type == Type::FUNCTION) {
+		cout << "(";
+		cout << func.iter->name;
+		for(const auto &i : func.args) {
+			cout << " ";
+			i->print();
+		}
+		cout << ")";
+	} else if(type == Type::VARIABLE) {
+		cout << var.name;
+	} else if(type == Type::CONSTANT) {
+		cout << val;
+	}
+}
+
+template <typename T>
+void Cell<T>::printNonRecursive() const
+{
+	if(type == Type::FUNCTION) {
+		cout << "func: ";
+		cout << func.iter->name;
+	} else if(type == Type::VARIABLE) {
+		cout << "var: " << var.name;
+	} else if(type == Type::CONSTANT) {
+		cout << "const: " << val;
+	}
+}
+
 
 #endif
