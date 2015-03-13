@@ -92,9 +92,9 @@ Cell <T>* ExpressionParser<T>::parse()
 	if(lexems.top().type == LexemeType::FUNCTION) {
 		throwError("Unfinished function call: ", lexems.top().begin_id);
 	}
-	// if(cells.top()->type == Cell<T>::Type::NONE) {
-	// 	throwError("Right argument for operator not found: ", last_op_id);
-	// }
+	if(cells.top()->type == Cell<T>::Type::NONE) {
+		throwError("Expected right argument for operator: ", lexems.top().cur_id);
+	}
 	Cell <T> *res = nullptr;
 	if(parents.top().empty()) {
 		res = cells.top();
@@ -324,6 +324,12 @@ void ExpressionParser<T>::parseFunctionArg(size_t id)
 template <typename T>
 void ExpressionParser<T>::parseFunctionEnd(size_t id)
 {
+	if(cells.top()->type == Cell <T>::Type::NONE) {
+		throwError("Unfinished expression: ", lexems.top().cur_id);
+	}
+	if(parents.top()[0]->func.iter->args_num > parents.top()[0]->func.args.size()) {
+		throwError("Not enough arguments: ", lexems.top().cur_id);
+	}
 	// Set current cell to the funciton cell
 	cells.pop();
 	cells.top() = parents.top()[0];
